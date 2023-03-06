@@ -18,8 +18,8 @@ $CFG->dboptions = array (
   'dbcollation' => 'utf8mb4_unicode_ci',
 );
 
-$CFG->wwwroot   = 'https://campus.ucarolina.mx';
-$CFG->dataroot  = '/mnt/data/moodledata';
+$CFG->wwwroot   = 'https://moodle.ucarolina.edu.mx';
+$CFG->dataroot  = '/storage';
 $CFG->admin     = 'admin';
 
 $CFG->directorypermissions = 0777;
