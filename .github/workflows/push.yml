@@ -55,7 +55,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            php: 8.0
+            php: 7.4
             extensions:
             db: mysqli
           - os: ubuntu-22.04
@@ -68,7 +68,7 @@ jobs:
         uses: moodlehq/mysql-action@v1
         with:
           collation server: utf8mb4_bin
-          mysql version: 8.0
+          mysql version: 5.7
           mysql database: test
           mysql user: test
           mysql password: test
@@ -80,7 +80,7 @@ jobs:
         if: ${{ matrix.db == 'pgsql' }}
         uses: m4nu56/postgresql-action@v1
         with:
-          postgresql version: 13
+          postgresql version: 12
           postgresql db: test
           postgresql user: test
           postgresql password: test

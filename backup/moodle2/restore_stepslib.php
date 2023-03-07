@@ -1142,7 +1142,7 @@ class restore_create_included_users extends restore_execution_step {
     protected function define_execution() {
 
         restore_dbops::create_included_users($this->get_basepath(), $this->get_restoreid(),
-                $this->task->get_userid(), $this->task->get_progress(), $this->task->get_courseid());
+                $this->task->get_userid(), $this->task->get_progress());
     }
 }
 
@@ -1932,9 +1932,6 @@ class restore_course_structure_step extends restore_structure_step {
 
         $showactivitydatesdefault = ($courseconfig->showactivitydates ?? null);
         $data->showactivitydates = $data->showactivitydates ?? $showactivitydatesdefault;
-
-        $pdffontdefault = ($courseconfig->pdfexportfont ?? null);
-        $data->pdfexportfont = $data->pdfexportfont ?? $pdffontdefault;
 
         $languages = get_string_manager()->get_list_of_translations(); // Get languages for quick search
         if (isset($data->lang) && !array_key_exists($data->lang, $languages)) {

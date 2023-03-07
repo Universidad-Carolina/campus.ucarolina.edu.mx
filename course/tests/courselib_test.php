@@ -38,7 +38,7 @@ use course_capability_assignment;
 use course_request;
 use core_course_category;
 use enrol_imsenterprise\imsenterprise_test;
-use core_external\external_api;
+use external_api;
 use grade_item;
 use grading_manager;
 use moodle_exception;
@@ -5751,7 +5751,7 @@ class courselib_test extends advanced_testcase {
                     'shortname DESC, xyz ASC',
                     'Invalid field in the sort parameter, allowed fields: id, idnumber, summary, summaryformat, ' .
                     'startdate, enddate, category, shortname, fullname, timeaccess, component, visible, ' .
-                    'showactivitydates, showcompletionconditions, pdfexportfont.',
+                    'showactivitydates, showcompletionconditions.',
             ],
             'Sort uses invalid value for the sorting direction' =>
                 [

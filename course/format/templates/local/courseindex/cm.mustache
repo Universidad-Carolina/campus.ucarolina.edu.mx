@@ -28,16 +28,14 @@
         "isactive": 1,
         "uniqid": "0",
         "accessvisible": 1,
-        "hascmrestrictions": 0,
-        "indent": 1
+        "hascmrestrictions": 0
     }
 }}
 <li class="courseindex-item
         {{#isactive}}active{{/isactive}}
         {{#hascmrestrictions}}restrictions{{/hascmrestrictions}}
         {{^accessvisible}}dimmed{{/accessvisible}}
-        {{#url}} d-flex {{/url}} {{^url}} d-flex-noedit {{/url}}
-        {{#indent}} indented {{/indent}}"
+        {{#url}} d-flex {{/url}} {{^url}} d-flex-noedit {{/url}}"
     id="{{uniqid}}-course-index-cm-{{id}}"
     data-for="cm"
     data-id="{{id}}"

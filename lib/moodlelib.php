@@ -5905,7 +5905,7 @@ function email_should_be_diverted($email) {
 
     $patterns = array_map('trim', preg_split("/[\s,]+/", $CFG->divertallemailsexcept, -1, PREG_SPLIT_NO_EMPTY));
     foreach ($patterns as $pattern) {
-        if (preg_match("/{$pattern}/i", $email)) {
+        if (preg_match("/$pattern/", $email)) {
             return false;
         }
     }
@@ -7841,12 +7841,9 @@ function get_plugins_with_function($function, $file = 'lib.php', $include = true
     $cache = \cache::make('core', 'plugin_functions');
 
     // Including both although I doubt that we will find two functions definitions with the same name.
-    // Clean the filename as cache_helper::hash_key only allows a-zA-Z0-9_.
-    $pluginfunctions = false;
-    if (!empty($CFG->allversionshash)) {
-        $key = $CFG->allversionshash . '_' . $function . '_' . clean_param($file, PARAM_ALPHA);
-        $pluginfunctions = $cache->get($key);
-    }
+    // Clearning the filename as cache_helper::hash_key only allows a-zA-Z0-9_.
+    $key = $function . '_' . clean_param($file, PARAM_ALPHA);
+    $pluginfunctions = $cache->get($key);
     $dirty = false;
 
     // Use the plugin manager to check that plugins are currently installed.
@@ -7935,9 +7932,7 @@ function get_plugins_with_function($function, $file = 'lib.php', $include = true
 
         }
     }
-    if (!empty($CFG->allversionshash)) {
-        $cache->set($key, $pluginfunctions);
-    }
+    $cache->set($key, $pluginfunctions);
 
     return $pluginfunctions;
 

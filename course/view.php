@@ -13,7 +13,6 @@
     $edit        = optional_param('edit', -1, PARAM_BOOL);
     $hide        = optional_param('hide', 0, PARAM_INT);
     $show        = optional_param('show', 0, PARAM_INT);
-    $duplicatesection = optional_param('duplicatesection', 0, PARAM_INT);
     $idnumber    = optional_param('idnumber', '', PARAM_RAW);
     $sectionid   = optional_param('sectionid', 0, PARAM_INT);
     $section     = optional_param('section', 0, PARAM_INT);
@@ -138,7 +137,7 @@
     // Preload course format renderer before output starts.
     // This is a little hacky but necessary since
     // format.php is not included until after output starts
-    $renderer = $format->get_renderer($PAGE);
+    $format->get_renderer($PAGE);
 
     if ($reset_user_allowed_editing) {
         // ugly hack
@@ -188,12 +187,6 @@
             }
         }
 
-        if (!empty($section) && !empty($coursesections) && !empty($duplicatesection)
-            && has_capability('moodle/course:update', $context) && confirm_sesskey()) {
-            $newsection = $format->duplicate_section($coursesections);
-            redirect(course_get_url($course, $newsection->section));
-        }
-
         if (!empty($section) && !empty($move) &&
                 has_capability('moodle/course:movesections', $context) && confirm_sesskey()) {
             $destsection = $section + $move;
@@ -241,12 +234,6 @@
         $PAGE->set_title(get_string('coursesectiontitle', 'moodle', array('course' => $course->fullname, 'sectiontitle' => $sectiontitle, 'sectionname' => $sectionname)));
     } else {
         $PAGE->set_title(get_string('coursetitle', 'moodle', array('course' => $course->fullname)));
-    }
-
-    // Add bulk editing control.
-    $bulkbutton = $renderer->bulk_editing_button($format);
-    if (!empty($bulkbutton)) {
-        $PAGE->add_header_action($bulkbutton);
     }
 
     $PAGE->set_heading($course->fullname);

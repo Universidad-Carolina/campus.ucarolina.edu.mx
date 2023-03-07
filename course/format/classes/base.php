@@ -26,7 +26,6 @@ namespace core_courseformat;
 
 use navigation_node;
 use moodle_page;
-use cm_info;
 use core_component;
 use course_modinfo;
 use html_writer;
@@ -38,7 +37,7 @@ use coding_exception;
 use moodle_url;
 use lang_string;
 use completion_info;
-use core_external\external_api;
+use external_api;
 use stdClass;
 use cache;
 use core_courseformat\output\legacy_renderer;
@@ -288,15 +287,6 @@ abstract class base {
     }
 
     /**
-     * Returns the course context.
-     *
-     * @return context_course the course context
-     */
-    final public function get_context(): context_course {
-        return context_course::instance($this->courseid);
-    }
-
-    /**
      * Returns a record from course database table plus additional fields
      * that course format defines
      *
@@ -453,6 +443,14 @@ abstract class base {
 
     /**
      * Returns true if this course format uses activity indentation.
+     *
+     * Indentation is not supported by core formats anymore and may be deprecated in the future.
+     * This method will keep a default return "true" for legacy reasons but new formats should override
+     * it with a return false to prevent future deprecations.
+     *
+     * A message in a bottle: if indentation is finally deprecated, both behat steps i_indent_right_activity
+     * and i_indent_left_activity should be removed as well. Right now no core behat uses them but indentation
+     * is not officially deprecated so they are still available for the contrib formats.
      *
      * @return bool if the course format uses indentation.
      */
@@ -1467,19 +1465,6 @@ abstract class base {
     }
 
     /**
-     * Wrapper for course_delete_module method.
-     *
-     * Format plugins can override this method to provide their own implementation of course_delete_module.
-     *
-     * @param cm_info $cm the course module information
-     * @param bool $async whether or not to try to delete the module using an adhoc task. Async also depends on a plugin hook.
-     * @throws moodle_exception
-     */
-    public function delete_module(cm_info $cm, bool $async = false) {
-        course_delete_module($cm->id, $async);
-    }
-
-    /**
      * Prepares the templateable object to display section name
      *
      * @param \section_info|\stdClass $section
@@ -1726,41 +1711,5 @@ abstract class base {
         $course = $this->get_course();
         // By default, formats store some most display specifics in a user preference.
         $DB->delete_records('user_preferences', ['name' => 'coursesectionspreferences_' . $course->id]);
-    }
-
-    /**
-     * Duplicate a section
-     *
-     * @param section_info $originalsection The section to be duplicated
-     * @return section_info The new duplicated section
-     * @since Moodle 4.2
-     */
-    public function duplicate_section(section_info $originalsection): section_info {
-        if (!$this->uses_sections()) {
-            throw new moodle_exception('sectionsnotsupported', 'core_courseformat');
-        }
-
-        $course = $this->get_course();
-        $oldsectioninfo = get_fast_modinfo($course)->get_section_info($originalsection->section);
-        $newsection = course_create_section($course, $oldsectioninfo->section + 1); // Place new section after existing one.
-
-        if (!empty($originalsection->name)) {
-            $newsection->name = get_string('duplicatedsection', 'moodle', $originalsection->name);
-        } else {
-            $newsection->name = $originalsection->name;
-        }
-        $newsection->summary = $originalsection->summary;
-        $newsection->summaryformat = $originalsection->summaryformat;
-        $newsection->visible = $originalsection->visible;
-        $newsection->availability = $originalsection->availability;
-        course_update_section($course, $newsection, $newsection);
-
-        $modinfo = $this->get_modinfo();
-        foreach ($modinfo->sections[$originalsection->section] as $modnumber) {
-            $originalcm = $modinfo->cms[$modnumber];
-            duplicate_module($course, $originalcm, $newsection->id, false);
-        }
-
-        return get_fast_modinfo($course)->get_section_info_by_id($newsection->id);
     }
 }

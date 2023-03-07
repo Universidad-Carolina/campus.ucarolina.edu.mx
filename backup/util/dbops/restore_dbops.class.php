@@ -1172,10 +1172,9 @@ abstract class restore_dbops {
      * @param string $restoreid Restore ID
      * @param int $userid Default userid for files
      * @param \core\progress\base $progress Object used for progress tracking
-     * @param int $courseid Course ID
      */
     public static function create_included_users($basepath, $restoreid, $userid,
-            \core\progress\base $progress, int $courseid = 0) {
+            \core\progress\base $progress) {
         global $CFG, $DB;
         require_once($CFG->dirroot.'/user/profile/lib.php');
         $progress->start_progress('Creating included users');
@@ -1296,9 +1295,6 @@ abstract class restore_dbops {
                         }
                     }
                 }
-
-                // Trigger event that user was created.
-                \core\event\user_created::create_from_user_id_on_restore($newuserid, $restoreid, $courseid)->trigger();
 
                 // Process tags
                 if (core_tag_tag::is_enabled('core', 'user') && isset($user->tags)) { // If enabled in server and present in backup.

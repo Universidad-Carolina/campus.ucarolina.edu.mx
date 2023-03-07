@@ -881,20 +881,7 @@ class moodle_url {
     }
 
     /**
-     * Checks if URL is relative to $CFG->wwwroot.
-     *
-     * @return bool True if URL is relative to $CFG->wwwroot; otherwise, false.
-     */
-    public function is_local_url() : bool {
-        global $CFG;
-
-        $url = $this->out();
-        // Does URL start with wwwroot? Otherwise, URL isn't relative to wwwroot.
-        return ( ($url === $CFG->wwwroot) || (strpos($url, $CFG->wwwroot.'/') === 0) );
-    }
-
-    /**
-     * Returns URL as relative path from $CFG->wwwroot
+     * Returns URL a relative path from $CFG->wwwroot
      *
      * Can be used for passing around urls with the wwwroot stripped
      *
@@ -906,9 +893,10 @@ class moodle_url {
     public function out_as_local_url($escaped = true, array $overrideparams = null) {
         global $CFG;
 
-        // URL should be relative to wwwroot. If not then throw exception.
-        if ($this->is_local_url()) {
-            $url = $this->out($escaped, $overrideparams);
+        $url = $this->out($escaped, $overrideparams);
+
+        // Url should be equal to wwwroot. If not then throw exception.
+        if (($url === $CFG->wwwroot) || (strpos($url, $CFG->wwwroot.'/') === 0)) {
             $localurl = substr($url, strlen($CFG->wwwroot));
             return !empty($localurl) ? $localurl : '';
         } else {
