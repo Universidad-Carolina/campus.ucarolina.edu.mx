@@ -18,12 +18,12 @@ $CFG->dboptions = array (
   'dbcollation' => 'utf8mb4_unicode_ci',
 );
 
-$CFG->wwwroot   = 'https://campus.ucarolina.edu.mx';
+$CFG->wwwroot   = 'http://campus.ucarolina.edu.mx';
 $CFG->dataroot  = '/storage';
 $CFG->admin     = 'admin';
 
 $CFG->directorypermissions = 0777;
-
+$CFG->sslproxy = 1;
 require_once(__DIR__ . '/lib/setup.php');
 
 // There is no php closing tag in this file,
