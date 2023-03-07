@@ -18,7 +18,7 @@ $CFG->dboptions = array (
   'dbcollation' => 'utf8mb4_unicode_ci',
 );
 
-$CFG->wwwroot   = 'http://campus.ucarolina.edu.mx';
+$CFG->wwwroot   = 'https://campus.ucarolina.edu.mx';
 $CFG->dataroot  = '/storage';
 $CFG->admin     = 'admin';
 
