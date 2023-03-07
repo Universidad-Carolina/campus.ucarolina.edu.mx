@@ -9,8 +9,5 @@
       "type": "vcs",
       "url": "https://github.com/moodlehq/php-webdriver.git"
     }
-  ],
-  "require": {
-    "php": "7.*"
-  }
+  ]
 }
