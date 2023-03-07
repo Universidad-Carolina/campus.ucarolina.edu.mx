@@ -17,6 +17,7 @@
  * A type of dialogue used as for choosing modules in a course.
  *
  * @module     core_course/activitychooser
+ * @package    core_course
  * @copyright  2020 Mathew May <mathew.solutions>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -132,21 +133,10 @@ const registerListenerEvents = (courseId, chooserConfig) => {
                 const sectionModal = buildModal(bodyPromise, footerData);
 
                 // Now we have a modal we should start fetching data.
-                // If an error occurs while fetching the data, display the error within the modal.
-                const data = await fetchModuleData().catch(async(e) => {
-                    const errorTemplateData = {
-                        'errormessage': e.message
-                    };
-                    bodyPromiseResolver(await Templates.render('core_course/local/activitychooser/error', errorTemplateData));
-                });
-
-                // Early return if there is no module data.
-                if (!data) {
-                    return;
-                }
+                const data = await fetchModuleData();
 
                 // Apply the section id to all the module instance links.
-                const builtModuleData = sectionIdMapper(data, caller.dataset.sectionid, caller.dataset.sectionreturnid);
+                const builtModuleData = sectionIdMapper(data, caller.dataset.sectionid);
 
                 ChooserDialogue.displayChooser(
                     sectionModal,
@@ -171,14 +161,13 @@ const registerListenerEvents = (courseId, chooserConfig) => {
  * @method sectionIdMapper
  * @param {Object} webServiceData Our original data from the Web service call
  * @param {Number} id The ID of the section we need to append to the links
- * @param {Number|null} sectionreturnid The ID of the section return we need to append to the links
  * @return {Array} [modules] with URL's built
  */
-const sectionIdMapper = (webServiceData, id, sectionreturnid) => {
+const sectionIdMapper = (webServiceData, id) => {
     // We need to take a fresh deep copy of the original data as an object is a reference type.
     const newData = JSON.parse(JSON.stringify(webServiceData));
     newData.content_items.forEach((module) => {
-        module.link += '&section=' + id + '&sr=' + (sectionreturnid ?? 0);
+        module.link += '&section=' + id;
     });
     return newData.content_items;
 };
@@ -258,7 +247,6 @@ const buildModal = (bodyPromise, footer) => {
         body: bodyPromise,
         footer: footer.customfootertemplate,
         large: true,
-        scrollable: false,
         templateContext: {
             classes: 'modchooser'
         }

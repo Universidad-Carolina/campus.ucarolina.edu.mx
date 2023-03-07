@@ -50,25 +50,23 @@
     {{{groupchangemenu}}}
 
 
-    <div class="py-3">
+    <div class="p-t-1 p-b-1">
         {{#forum.capabilities.create}}
-            {{#enablediscussioncreation}}
-                <a class="btn btn-primary" data-toggle="collapse" href="#collapseAddForm">
-                    {{$discussion_create_text}}
-                        {{#str}}addanewdiscussion, forum{{/str}}
-                    {{/discussion_create_text}}
-                </a>
-            {{/enablediscussioncreation}}
+            <a class="btn btn-primary" data-toggle="collapse" href="#collapseAddForm">
+                {{$discussion_create_text}}
+                    {{#str}}addanewdiscussion, forum{{/str}}
+                {{/discussion_create_text}}
+            </a>
         {{/forum.capabilities.create}}
         {{^forum.capabilities.create}}
             {{#forum.capabilities.selfenrol}}
-                {{#enablediscussioncreation}}
+                <div class="p-t-1 p-b-1">
                     <a class="btn btn-primary" href="{{forum.urls.create}}">
                         {{$discussion_create_text}}
                             {{#str}}addanewdiscussion, forum{{/str}}
                         {{/discussion_create_text}}
                     </a>
-                {{/enablediscussioncreation}}
+                </div>
             {{/forum.capabilities.selfenrol}}
         {{/forum.capabilities.create}}
         {{#forum.capabilities.grade}}
@@ -83,7 +81,7 @@
         {{/forum.capabilities.grade}}
     </div>
     {{#forum.capabilities.create}}
-        <div class="collapse mt-3 pb-3" id="collapseAddForm">
+        <div class="collapse m-t-1 p-b-1" id="collapseAddForm">
             {{{newdiscussionhtml}}}
         </div>
     {{/forum.capabilities.create}}
@@ -93,8 +91,7 @@
             {{{ pagination }}}
         {{/discussion_top_pagination}}
         {{$discussion_list_output}}
-        <div class="no-overflow">
-            <table class="table discussion-list generaltable">
+            <table class="table discussion-list">
                 <caption id="discussion-table-description-{{uniqid}}" class="sr-only">
                     {{#str}} showingcountoftotaldiscussions, mod_forum, {"count": "{{visiblediscussioncount}}", "total":"{{totaldiscussioncount}}"} {{/str}}
                 </caption>
@@ -104,7 +101,7 @@
                         <th scope="col">
                             <span class="accesshide">{{#str}}status{{/str}}</span>
                         </th>
-                        <th scope="col" class="pl-0">
+                        <th scope="col" class="p-l-0">
                             {{#state.sortorder.isdiscussiondesc}}
                                 <a href="{{{forum.urls.sortdiscussionasc}}}" aria-label="{{#str}}discussionlistsortbydiscussionasc, mod_forum{{/str}}">{{#str}}discussion, mod_forum{{/str}}</a> <span class="text-primary">{{#pix}}t/downlong, core, {{#str}}desc, core{{/str}}{{/pix}}</span>
                             {{/state.sortorder.isdiscussiondesc}}
@@ -209,7 +206,7 @@
                                 {{/discussion.pinned}}
                             </td>
                             <th scope="row" class="topic p-0 align-middle">
-                                <div class="p-3 pl-0">
+                                <div class="p-3 p-l-0">
                                     <a class="w-100 h-100 d-block" href="{{discussion.urls.view}}" title="{{discussion.name}}" aria-label="{{discussion.name}}">
                                         {{#shortentext}}100, {{{discussion.name}}}{{/shortentext}}
                                     </a>
@@ -356,7 +353,6 @@
                 </tbody>
                 {{/discussion_list_body}}
             </table>
-        </div>
         {{/discussion_list_output}}
         {{$discussion_bottom_pagination}}
             {{{ pagination }}}
@@ -368,9 +364,9 @@
         {{/can_create_discussion}}
     {{/state.hasdiscussions}}
     {{^state.hasdiscussions}}
-        <div class="forumnodiscuss alert alert-info">
+        <div class="forumnodiscuss">
             {{$no_discussions_text}}
-                {{#str}}nodiscussions, forum{{/str}}
+                ({{#str}}nodiscussions, forum{{/str}})
             {{/no_discussions_text}}
         </div>
     {{/state.hasdiscussions}}

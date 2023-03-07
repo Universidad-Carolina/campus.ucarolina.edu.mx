@@ -116,11 +116,7 @@ class calendar_event_exporter extends event_exporter_base {
         $values['islastday'] = false;
         $today = $this->related['type']->timestamp_to_date_array($this->related['today']);
 
-        if ($hascourse) {
-            $values['popupname'] = external_format_string($this->event->get_name(), \context_course::instance($course->id), true);
-        } else {
-            $values['popupname'] = external_format_string($this->event->get_name(), \context_system::instance(), true);
-        }
+        $values['popupname'] = $this->event->get_name();
 
         $times = $this->event->get_times();
         if ($duration = $times->get_duration()) {
@@ -373,7 +369,7 @@ class calendar_event_exporter extends event_exporter_base {
      * and the module's minimum timestamp limit.
      *
      * @deprecated since Moodle 3.6. Please use get_timestamp_min_limit().
-     * @todo final deprecation. To be removed in Moodle 3.10
+     * @todo final deprecation. To be removed in Moodle 4.0
      * @param DateTimeInterface $starttime The event start time
      * @param array $min The module's minimum limit for the event
      * @return array Returns an array with mindaytimestamp and mindayerror keys.
@@ -389,7 +385,7 @@ class calendar_event_exporter extends event_exporter_base {
      * and the module's maximum timestamp limit.
      *
      * @deprecated since Moodle 3.6. Please use get_timestamp_max_limit().
-     * @todo final deprecation. To be removed in Moodle 3.10
+     * @todo final deprecation. To be removed in Moodle 4.0
      * @param DateTimeInterface $starttime The event start time
      * @param array $max The module's maximum limit for the event
      * @return array Returns an array with maxdaytimestamp and maxdayerror keys.

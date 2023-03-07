@@ -37,7 +37,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 abstract class base_testcase extends PHPUnit\Framework\TestCase {
-    // phpcs:disable
+    // @codingStandardsIgnoreStart
     // Following code is legacy code from phpunit to support assertTag
     // and assertNotTag.
 
@@ -53,9 +53,9 @@ abstract class base_testcase extends PHPUnit\Framework\TestCase {
      * @deprecated 3.0
      */
     public static function assertTag($matcher, $actual, $message = '', $ishtml = true) {
-        $dom = (new PHPUnit\Util\Xml\Loader)->load($actual, $ishtml);
+        $dom = PHPUnit\Util\XML::load($actual, $ishtml);
         $tags = self::findNodes($dom, $matcher, $ishtml);
-        $matched = (is_array($tags) && count($tags) > 0) && $tags[0] instanceof DOMNode;
+        $matched = count($tags) > 0 && $tags[0] instanceof DOMNode;
         self::assertTrue($matched, $message);
     }
 
@@ -71,7 +71,7 @@ abstract class base_testcase extends PHPUnit\Framework\TestCase {
      * @deprecated 3.0
      */
     public static function assertNotTag($matcher, $actual, $message = '', $ishtml = true) {
-        $dom = (new PHPUnit\Util\Xml\Loader)->load($actual, $ishtml);
+        $dom = PHPUnit\Util\XML::load($actual, $ishtml);
         $tags = self::findNodes($dom, $matcher, $ishtml);
         $matched = (is_array($tags) && count($tags) > 0) && $tags[0] instanceof DOMNode;
         self::assertFalse($matched, $message);
@@ -569,5 +569,6 @@ abstract class base_testcase extends PHPUnit\Framework\TestCase {
 
         return str_replace('  ', ' ', $result);
     }
-    // phpcs:enable
+
+    // @codingStandardsIgnoreEnd
 }

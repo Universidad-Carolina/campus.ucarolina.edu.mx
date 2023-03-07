@@ -14,22 +14,30 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_data;
-
 /**
- * Unit tests for import.php.
+ * Unit tests for importing csv files.
  *
  * @package    mod_data
  * @category   test
  * @copyright  2019 Tobias Reischmann
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class import_test extends \advanced_testcase {
+
+defined('MOODLE_INTERNAL') || die();
+
+/**
+ * Unit tests for import.php.
+ *
+ * @package    mod_data
+ * @copyright  2019 Tobias Reischmann
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class mod_data_import_test extends advanced_testcase {
 
     /**
      * Set up function.
      */
-    protected function setUp(): void {
+    protected function setUp() {
         parent::setUp();
 
         global $CFG;
@@ -59,7 +67,7 @@ class import_test extends \advanced_testcase {
         $cm = get_coursemodule_from_instance('data', $data->id);
 
         // Add fields.
-        $fieldrecord = new \stdClass();
+        $fieldrecord = new StdClass();
         $fieldrecord->name = 'ID'; // Identifier of the records for testing.
         $fieldrecord->type = 'number';
         $generator->create_field($fieldrecord, $data);
@@ -156,7 +164,7 @@ class import_test extends \advanced_testcase {
         $generator = $this->getDataGenerator()->get_plugin_generator('mod_data');
 
         // Add username field.
-        $fieldrecord = new \stdClass();
+        $fieldrecord = new StdClass();
         $fieldrecord->name = 'Username';
         $fieldrecord->type = 'text';
         $generator->create_field($fieldrecord, $data);
@@ -218,7 +226,7 @@ class import_test extends \advanced_testcase {
         $generator = $this->getDataGenerator()->get_plugin_generator('mod_data');
 
         // Add username field.
-        $fieldrecord = new \stdClass();
+        $fieldrecord = new StdClass();
         $fieldrecord->name = 'Username';
         $fieldrecord->type = 'text';
         $generator->create_field($fieldrecord, $data);

@@ -49,39 +49,17 @@ class cache_disabled extends cache {
      * @param null $loader Unused.
      */
     public function __construct(cache_definition $definition, cache_store $store, $loader = null) {
-        if ($loader instanceof cache_data_source) {
-            // Set the data source to allow data sources to work when caching is entirely disabled.
-            $this->set_data_source($loader);
-        }
-
-        // No other features are handled.
+        // Nothing to do here.
     }
 
     /**
      * Gets a key from the cache.
      *
      * @param int|string $key
-     * @param int $requiredversion Minimum required version of the data or cache::VERSION_NONE
      * @param int $strictness Unused.
-     * @param mixed &$actualversion If specified, will be set to the actual version number retrieved
      * @return bool
      */
-    protected function get_implementation($key, int $requiredversion, int $strictness, &$actualversion = null) {
-        $datasource = $this->get_datasource();
-        if ($datasource !== false) {
-            if ($requiredversion === cache::VERSION_NONE) {
-                return $datasource->load_for_cache($key);
-            } else {
-                if (!$datasource instanceof cache_data_source_versionable) {
-                    throw new \coding_exception('Data source is not versionable');
-                }
-                $result = $datasource->load_for_cache_versioned($key, $requiredversion, $actualversion);
-                if ($result && $actualversion < $requiredversion) {
-                    throw new \coding_exception('Data source returned outdated version');
-                }
-                return $result;
-            }
-        }
+    public function get($key, $strictness = IGNORE_MISSING) {
         return false;
     }
 
@@ -93,23 +71,21 @@ class cache_disabled extends cache {
      * @return array
      */
     public function get_many(array $keys, $strictness = IGNORE_MISSING) {
-        if ($this->get_datasource() !== false) {
-            return $this->get_datasource()->load_many_for_cache($keys);
+        $return = array();
+        foreach ($keys as $key) {
+            $return[$key] = false;
         }
-
-        return array_combine($keys, array_fill(0, count($keys), false));
+        return $return;
     }
 
     /**
      * Sets a key value pair in the cache.
      *
      * @param int|string $key Unused.
-     * @param int $version Unused.
      * @param mixed $data Unused.
-     * @param bool $setparents Unused.
      * @return bool
      */
-    protected function set_implementation($key, int $version, $data, bool $setparents = true): bool {
+    public function set($key, $data) {
         return false;
     }
 
@@ -153,9 +129,7 @@ class cache_disabled extends cache {
      * @return bool
      */
     public function has($key, $tryloadifpossible = false) {
-        $result = $this->get($key);
-
-        return $result !== false;
+        return false;
     }
 
     /**
@@ -164,16 +138,7 @@ class cache_disabled extends cache {
      * @return bool
      */
     public function has_all(array $keys) {
-        if (!$this->get_datasource()) {
-            return false;
-        }
-
-        foreach ($keys as $key) {
-            if (!$this->has($key)) {
-                return false;
-            }
-        }
-        return true;
+        return false;
     }
 
     /**
@@ -183,12 +148,6 @@ class cache_disabled extends cache {
      * @return bool
      */
     public function has_any(array $keys) {
-        foreach ($keys as $key) {
-            if ($this->has($key)) {
-                return true;
-            }
-        }
-
         return false;
     }
 
@@ -198,26 +157,6 @@ class cache_disabled extends cache {
      * @return bool
      */
     public function purge() {
-        return true;
-    }
-
-    /**
-     * Pretend that we got a lock to avoid errors.
-     *
-     * @param string $key
-     * @return bool
-     */
-    public function acquire_lock(string $key) : bool {
-        return true;
-    }
-
-    /**
-     * Pretend that we released a lock to avoid errors.
-     *
-     * @param string $key
-     * @return void
-     */
-    public function release_lock(string $key) : bool {
         return true;
     }
 }
@@ -250,11 +189,6 @@ class cache_factory_disabled extends cache_factory {
      * @return cache_definition
      */
     public function create_definition($component, $area, $unused = null) {
-        $definition = parent::create_definition($component, $area);
-        if ($definition->has_data_source()) {
-            return $definition;
-        }
-
         return cache_definition::load_adhoc(cache_store::MODE_REQUEST, $component, $area);
     }
 
@@ -266,11 +200,7 @@ class cache_factory_disabled extends cache_factory {
      * @throws coding_exception
      */
     public function create_cache(cache_definition $definition) {
-        $loader = null;
-        if ($definition->has_data_source()) {
-            $loader = $definition->get_data_source();
-        }
-        return new cache_disabled($definition, $this->create_dummy_store($definition), $loader);
+        return new cache_disabled($definition, $this->create_dummy_store($definition));
     }
 
     /**
@@ -348,28 +278,19 @@ class cache_factory_disabled extends cache_factory {
             self::set_state(self::STATE_INITIALISING);
             if ($class === 'cache_config_disabled') {
                 $configuration = $class::create_default_configuration();
-                $this->configs[$class] = new $class;
             } else {
                 $configuration = false;
-                // If we need a writer, we should get the classname from the generic factory.
-                // This is so alternative classes can be used if a different writer is required.
-                $this->configs[$class] = parent::get_disabled_writer();
+                if (!cache_config::config_file_exists()) {
+                    cache_config_writer::create_default_configuration(true);
+                }
             }
+            $this->configs[$class] = new $class;
             $this->configs[$class]->load($configuration);
         }
         self::set_state(self::STATE_READY);
 
         // Return the instance.
         return $this->configs[$class];
-    }
-
-    /**
-     * Returns true if the cache API has been disabled.
-     *
-     * @return bool
-     */
-    public function is_disabled() {
-        return true;
     }
 }
 

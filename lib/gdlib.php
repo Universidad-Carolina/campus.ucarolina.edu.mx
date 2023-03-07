@@ -216,8 +216,8 @@ function process_new_icon($context, $component, $filearea, $itemid, $originalfil
         $im3 = imagecreate(512, 512);
     }
 
-    $cx = floor($image->width / 2);
-    $cy = floor($image->height / 2);
+    $cx = $image->width / 2;
+    $cy = $image->height / 2;
 
     if ($image->width < $image->height) {
         $half = floor($image->width / 2.0);
@@ -232,14 +232,6 @@ function process_new_icon($context, $component, $filearea, $itemid, $originalfil
     $fs = get_file_storage();
 
     $icon = array('contextid'=>$context->id, 'component'=>$component, 'filearea'=>$filearea, 'itemid'=>$itemid, 'filepath'=>'/');
-
-    if ($imagefnc === 'imagejpeg') {
-        // Function imagejpeg() accepts less arguments than imagepng() but we need to make $imagefnc accept the same
-        // number of arguments, otherwise PHP8 throws an error.
-        $imagefnc = function($image, $filename, $quality, $unused) {
-            return imagejpeg($image, $filename, $quality);
-        };
-    }
 
     ob_start();
     if (!$imagefnc($im1, NULL, $quality, $filters)) {
@@ -391,14 +383,6 @@ function resize_image_from_image($original, $imageinfo, $width, $height, $forcec
     }
 
     imagecopybicubic($newimage, $original, $dstx, $dsty, 0, 0, $targetwidth, $targetheight, $originalwidth, $originalheight);
-
-    if ($imagefnc === 'imagejpeg') {
-        // Function imagejpeg() accepts less arguments than imagepng() but we need to make $imagefnc accept the same
-        // number of arguments, otherwise PHP8 throws an error.
-        $imagefnc = function($image, $filename, $quality, $unused) {
-            return imagejpeg($image, $filename, $quality);
-        };
-    }
 
     // Capture the image as a string object, rather than straight to file.
     ob_start();

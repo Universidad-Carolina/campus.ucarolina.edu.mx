@@ -176,7 +176,7 @@ class mysqli_native_moodle_database extends moodle_database {
         $sql = "SELECT engine
                   FROM INFORMATION_SCHEMA.TABLES
                  WHERE table_schema = DATABASE() AND table_name = '{$this->prefix}config'";
-        $this->query_start($sql, null, SQL_QUERY_AUX);
+        $this->query_start($sql, NULL, SQL_QUERY_AUX);
         $result = $this->mysqli->query($sql);
         $this->query_end($result);
         if ($rec = $result->fetch_assoc()) {
@@ -194,7 +194,7 @@ class mysqli_native_moodle_database extends moodle_database {
 
         // Get the default database engine.
         $sql = "SELECT @@default_storage_engine engine";
-        $this->query_start($sql, null, SQL_QUERY_AUX);
+        $this->query_start($sql, NULL, SQL_QUERY_AUX);
         $result = $this->mysqli->query($sql);
         $this->query_end($result);
         if ($rec = $result->fetch_assoc()) {
@@ -205,7 +205,7 @@ class mysqli_native_moodle_database extends moodle_database {
         if ($engine === 'MyISAM') {
             // we really do not want MyISAM for Moodle, InnoDB or XtraDB is a reasonable defaults if supported
             $sql = "SHOW STORAGE ENGINES";
-            $this->query_start($sql, null, SQL_QUERY_AUX);
+            $this->query_start($sql, NULL, SQL_QUERY_AUX);
             $result = $this->mysqli->query($sql);
             $this->query_end($result);
             $engines = array();
@@ -244,9 +244,9 @@ class mysqli_native_moodle_database extends moodle_database {
     /**
      * Set 'dbcollation' option
      *
-     * @return string|null $dbcollation
+     * @return string $dbcollation
      */
-    private function detect_collation(): ?string {
+    private function detect_collation(): string {
         if ($this->external) {
             return null;
         }
@@ -313,7 +313,7 @@ class mysqli_native_moodle_database extends moodle_database {
         // - innodb_file_format_max
         // - innodb_large_prefix
         // 1. MySQL: deprecated in 5.7.7 and removed 8.0.0+.
-        $ismysqlge8d0d0 = ($this->get_dbtype() == 'mysqli' || $this->get_dbtype() == 'auroramysql') &&
+        $ismysqlge8d0d0 = ($this->get_dbtype() == 'mysqli') &&
                 version_compare($this->get_server_info()['version'], '8.0.0', '>=');
         // 2. MariaDB: deprecated in 10.2.0 and removed 10.3.1+.
         $ismariadbge10d3d1 = ($this->get_dbtype() == 'mariadb') &&
@@ -349,7 +349,7 @@ class mysqli_native_moodle_database extends moodle_database {
 
             $sql = "SHOW VARIABLES LIKE 'innodb_file_format'";
         }
-        $this->query_start($sql, null, SQL_QUERY_AUX);
+        $this->query_start($sql, NULL, SQL_QUERY_AUX);
         $result = $this->mysqli->query($sql);
         $this->query_end($result);
         if ($rec = $result->fetch_assoc()) {
@@ -541,8 +541,8 @@ class mysqli_native_moodle_database extends moodle_database {
 
         $this->store_settings($dbhost, $dbuser, $dbpass, $dbname, $prefix, $dboptions);
 
-        // The dbsocket option is used ONLY if host is null or 'localhost'.
-        // You can not disable it because it is always tried if dbhost is 'localhost'.
+        // dbsocket is used ONLY if host is NULL or 'localhost',
+        // you can not disable it because it is always tried if dbhost is 'localhost'
         if (!empty($this->dboptions['dbsocket'])
                 and (strpos($this->dboptions['dbsocket'], '/') !== false or strpos($this->dboptions['dbsocket'], '\\') !== false)) {
             $dbsocket = $this->dboptions['dbsocket'];
@@ -561,11 +561,6 @@ class mysqli_native_moodle_database extends moodle_database {
         if ($dbhost and !empty($this->dboptions['dbpersist'])) {
             $dbhost = "p:$dbhost";
         }
-
-        // We want to keep exceptions out from the native driver.
-        // TODO: See MDL-75761 for future improvements.
-        mysqli_report(MYSQLI_REPORT_OFF); // Disable reporting (default before PHP 8.1).
-
         $this->mysqli = mysqli_init();
         if (!empty($this->dboptions['connecttimeout'])) {
             $this->mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, $this->dboptions['connecttimeout']);
@@ -701,7 +696,7 @@ class mysqli_native_moodle_database extends moodle_database {
         $this->tables = array();
         $prefix = str_replace('_', '\\_', $this->prefix);
         $sql = "SHOW TABLES LIKE '$prefix%'";
-        $this->query_start($sql, null, $usecache ? SQL_QUERY_AUX_READONLY : SQL_QUERY_AUX);
+        $this->query_start($sql, null, SQL_QUERY_AUX);
         $result = $this->mysqli->query($sql);
         $this->query_end($result);
         $len = strlen($this->prefix);
@@ -728,7 +723,7 @@ class mysqli_native_moodle_database extends moodle_database {
         $indexes = array();
         $fixedtable = $this->fix_table_name($table);
         $sql = "SHOW INDEXES FROM $fixedtable";
-        $this->query_start($sql, null, SQL_QUERY_AUX_READONLY);
+        $this->query_start($sql, null, SQL_QUERY_AUX);
         $result = $this->mysqli->query($sql);
         try {
             $this->query_end($result);
@@ -765,7 +760,7 @@ class mysqli_native_moodle_database extends moodle_database {
                  WHERE table_name = '" . $this->prefix.$table . "'
                        AND table_schema = '" . $this->dbname . "'
               ORDER BY ordinal_position";
-        $this->query_start($sql, null, SQL_QUERY_AUX_READONLY);
+        $this->query_start($sql, null, SQL_QUERY_AUX);
         $result = $this->mysqli->query($sql);
         $this->query_end(true); // Don't want to throw anything here ever. MDL-30147
 
@@ -788,7 +783,7 @@ class mysqli_native_moodle_database extends moodle_database {
             $result->close();
             $fixedtable = $this->fix_table_name($table);
             $sql = "SHOW COLUMNS FROM $fixedtable";
-            $this->query_start($sql, null, SQL_QUERY_AUX_READONLY);
+            $this->query_start($sql, null, SQL_QUERY_AUX);
             $result = $this->mysqli->query($sql);
             $this->query_end(true);
             if ($result === false) {
@@ -891,7 +886,7 @@ class mysqli_native_moodle_database extends moodle_database {
         $info->type           = $rawcolumn->data_type;
         $info->meta_type      = $this->mysqltype2moodletype($rawcolumn->data_type);
         if ($this->has_breaking_change_quoted_defaults()) {
-            $info->default_value = is_null($rawcolumn->column_default) ? null : trim($rawcolumn->column_default, "'");
+            $info->default_value = trim($rawcolumn->column_default, "'");
             if ($info->default_value === 'NULL') {
                 $info->default_value = null;
             }
@@ -1070,7 +1065,7 @@ class mysqli_native_moodle_database extends moodle_database {
         $charset = reset($collationinfo);
 
         $sql = "SHOW COLLATION WHERE Collation ='$collation' AND Charset = '$charset'";
-        $this->query_start($sql, null, SQL_QUERY_AUX_READONLY);
+        $this->query_start($sql, NULL, SQL_QUERY_AUX);
         $result = $this->mysqli->query($sql);
         $this->query_end($result);
         if ($result->fetch_assoc()) {
@@ -1379,7 +1374,7 @@ class mysqli_native_moodle_database extends moodle_database {
      * If the return ID isn't required, then this just reports success as true/false.
      * $data is an object containing needed data
      * @param string $table The database table to be inserted into
-     * @param object|array $dataobject A data object with values for one or more fields in the record
+     * @param object $data A data object with values for one or more fields in the record
      * @param bool $returnid Should the id of the newly created record entry be returned? If this option is not requested then true/false is returned.
      * @return bool|int true or new id
      * @throws dml_exception A DML specific exception is thrown for any errors.
@@ -1409,10 +1404,28 @@ class mysqli_native_moodle_database extends moodle_database {
     }
 
     /**
-     * Get chunk size for multiple records insert
-     * @return int
+     * Insert multiple records into database as fast as possible.
+     *
+     * Order of inserts is maintained, but the operation is not atomic,
+     * use transactions if necessary.
+     *
+     * This method is intended for inserting of large number of small objects,
+     * do not use for huge objects with text or binary fields.
+     *
+     * @since Moodle 2.7
+     *
+     * @param string $table  The database table to be inserted into
+     * @param array|Traversable $dataobjects list of objects to be inserted, must be compatible with foreach
+     * @return void does not return new record ids
+     *
+     * @throws coding_exception if data objects have different structure
+     * @throws dml_exception A DML specific exception is thrown for any errors.
      */
-    private function insert_chunk_size(): int {
+    public function insert_records($table, $dataobjects) {
+        if (!is_array($dataobjects) and !$dataobjects instanceof Traversable) {
+            throw new coding_exception('insert_records() passed non-traversable object');
+        }
+
         // MySQL has a relatively small query length limit by default,
         // make sure 'max_allowed_packet' in my.cnf is high enough
         // if you change the following default...
@@ -1443,33 +1456,7 @@ class mysqli_native_moodle_database extends moodle_database {
                 }
             }
         }
-        return $chunksize;
-    }
 
-    /**
-     * Insert multiple records into database as fast as possible.
-     *
-     * Order of inserts is maintained, but the operation is not atomic,
-     * use transactions if necessary.
-     *
-     * This method is intended for inserting of large number of small objects,
-     * do not use for huge objects with text or binary fields.
-     *
-     * @since Moodle 2.7
-     *
-     * @param string $table  The database table to be inserted into
-     * @param array|Traversable $dataobjects list of objects to be inserted, must be compatible with foreach
-     * @return void does not return new record ids
-     *
-     * @throws coding_exception if data objects have different structure
-     * @throws dml_exception A DML specific exception is thrown for any errors.
-     */
-    public function insert_records($table, $dataobjects) {
-        if (!is_array($dataobjects) && !$dataobjects instanceof Traversable) {
-            throw new coding_exception('insert_records() passed non-traversable object');
-        }
-
-        $chunksize = $this->insert_chunk_size();
         $columns = $this->get_columns($table, true);
         $fields = null;
         $count = 0;
@@ -1701,23 +1688,6 @@ class mysqli_native_moodle_database extends moodle_database {
         return true;
     }
 
-    /**
-     * Deletes records using a subquery, which is done with a strange DELETE...JOIN syntax in MySQL
-     * because it performs very badly with normal subqueries.
-     *
-     * @param string $table Table to delete from
-     * @param string $field Field in table to match
-     * @param string $alias Name of single column in subquery e.g. 'id'
-     * @param string $subquery Query that will return values of the field to delete
-     * @param array $params Parameters for query
-     * @throws dml_exception If there is any error
-     */
-    public function delete_records_subquery(string $table, string $field, string $alias, string $subquery, array $params = []): void {
-        // Aliases mysql_deltable and mysql_subquery are chosen to be unlikely to conflict.
-        $this->execute("DELETE mysql_deltable FROM {" . $table . "} mysql_deltable JOIN " .
-                "($subquery) mysql_subquery ON mysql_subquery.$alias = mysql_deltable.$field", $params);
-    }
-
     public function sql_cast_char2int($fieldname, $text=false) {
         return ' CAST(' . $fieldname . ' AS SIGNED) ';
     }
@@ -1837,19 +1807,6 @@ class mysqli_native_moodle_database extends moodle_database {
     }
 
     /**
-     * Return SQL for performing group concatenation on given field/expression
-     *
-     * @param string $field
-     * @param string $separator
-     * @param string $sort
-     * @return string
-     */
-    public function sql_group_concat(string $field, string $separator = ', ', string $sort = ''): string {
-        $fieldsort = $sort ? "ORDER BY {$sort}" : '';
-        return "GROUP_CONCAT({$field} {$fieldsort} SEPARATOR '{$separator}')";
-    }
-
-    /**
      * Returns the SQL text to be used to calculate the length in characters of one expression.
      * @param string fieldname or expression to calculate its length in characters.
      * @return string the piece of SQL code to be used in the statement.
@@ -1887,38 +1844,6 @@ class mysqli_native_moodle_database extends moodle_database {
         }
 
         return $collation . ($positivematch ? 'REGEXP' : 'NOT REGEXP');
-    }
-
-    /**
-     * Returns the word-beginning boundary marker based on MySQL version.
-     * @return string The word-beginning boundary marker.
-     */
-    public function sql_regex_get_word_beginning_boundary_marker() {
-        $ismysql = ($this->get_dbtype() == 'mysqli' || $this->get_dbtype() == 'auroramysql');
-        $ismysqlge8d0d4 = ($ismysql && version_compare($this->get_server_info()['version'], '8.0.4', '>='));
-        if ($ismysqlge8d0d4) {
-            return '\\b';
-        }
-        // Prior to MySQL 8.0.4, MySQL used the Henry Spencer regular expression library to support regular expression operations,
-        // rather than International Components for Unicode (ICU).
-        // MariaDB still supports the "old marker" (MDEV-5357).
-        return '[[:<:]]';
-    }
-
-    /**
-     * Returns the word-end boundary marker based on MySQL version.
-     * @return string The word-end boundary marker.
-     */
-    public function sql_regex_get_word_end_boundary_marker() {
-        $ismysql = ($this->get_dbtype() == 'mysqli' || $this->get_dbtype() == 'auroramysql');
-        $ismysqlge8d0d4 = ($ismysql && version_compare($this->get_server_info()['version'], '8.0.4', '>='));
-        if ($ismysqlge8d0d4) {
-            return '\\b';
-        }
-        // Prior to MySQL 8.0.4, MySQL used the Henry Spencer regular expression library to support regular expression operations,
-        // rather than International Components for Unicode (ICU).
-        // MariaDB still supports the "old marker" (MDEV-5357).
-        return '[[:>:]]';
     }
 
     /**
@@ -2068,12 +1993,12 @@ class mysqli_native_moodle_database extends moodle_database {
         }
 
         $sql = "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED";
-        $this->query_start($sql, null, SQL_QUERY_AUX);
+        $this->query_start($sql, NULL, SQL_QUERY_AUX);
         $result = $this->mysqli->query($sql);
         $this->query_end($result);
 
         $sql = "START TRANSACTION";
-        $this->query_start($sql, null, SQL_QUERY_AUX);
+        $this->query_start($sql, NULL, SQL_QUERY_AUX);
         $result = $this->mysqli->query($sql);
         $this->query_end($result);
     }
@@ -2089,7 +2014,7 @@ class mysqli_native_moodle_database extends moodle_database {
         }
 
         $sql = "COMMIT";
-        $this->query_start($sql, null, SQL_QUERY_AUX);
+        $this->query_start($sql, NULL, SQL_QUERY_AUX);
         $result = $this->mysqli->query($sql);
         $this->query_end($result);
     }
@@ -2105,7 +2030,7 @@ class mysqli_native_moodle_database extends moodle_database {
         }
 
         $sql = "ROLLBACK";
-        $this->query_start($sql, null, SQL_QUERY_AUX);
+        $this->query_start($sql, NULL, SQL_QUERY_AUX);
         $result = $this->mysqli->query($sql);
         $this->query_end($result);
 

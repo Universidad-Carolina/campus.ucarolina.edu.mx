@@ -22,7 +22,6 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use mod_quiz\question\bank\qbank_helper;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -45,18 +44,6 @@ class quiz_overview_report extends quiz_attempts_report {
      */
     protected $hasgroupstudents;
 
-    /**
-     * @var array|null cached copy of qbank_helper::get_question_structure for use during regrades.
-     */
-    protected $structureforregrade = null;
-
-    /**
-     * @var array|null used during regrades, to cache which new questionid to use for each old on.
-     *      for random questions, stores oldquestionid => newquestionid.
-     *      See get_new_question_for_regrade.
-     */
-    protected $newquestionidsforold = null;
-
     public function display($quiz, $cm, $course) {
         global $DB, $OUTPUT, $PAGE;
 
@@ -76,6 +63,7 @@ class quiz_overview_report extends quiz_attempts_report {
 
         // Load the required questions.
         $questions = quiz_report_get_significant_questions($quiz);
+
         // Prepare for downloading, if applicable.
         $courseshortname = format_string($course->shortname, true,
                 array('context' => context_course::instance($course->id)));
@@ -203,6 +191,7 @@ class quiz_overview_report extends quiz_attempts_report {
 
             if ($options->slotmarks) {
                 foreach ($questions as $slot => $question) {
+                    // Ignore questions of zero length.
                     $columns[] = 'qsgrade' . $slot;
                     $header = get_string('qbrief', 'quiz', $question->number);
                     if (!$table->is_downloading()) {
@@ -236,8 +225,7 @@ class quiz_overview_report extends quiz_attempts_report {
                     $data = quiz_report_grade_bands($bandwidth, $bands, $quiz->id, $groupstudentsjoins);
                     $chart = self::get_chart($labels, $data);
                     $graphname = get_string('overviewreportgraphgroup', 'quiz_overview', groups_get_group_name($currentgroup));
-                    // Numerical range data should display in LTR even for RTL languages.
-                    echo $output->chart($chart, $graphname, ['dir' => 'ltr']);
+                    echo $output->chart($chart, $graphname);
                 }
             }
 
@@ -245,8 +233,7 @@ class quiz_overview_report extends quiz_attempts_report {
                 $data = quiz_report_grade_bands($bandwidth, $bands, $quiz->id, new \core\dml\sql_join());
                 $chart = self::get_chart($labels, $data);
                 $graphname = get_string('overviewreportgraph', 'quiz_overview');
-                // Numerical range data should display in LTR even for RTL languages.
-                echo $output->chart($chart, $graphname, ['dir' => 'ltr']);
+                echo $output->chart($chart, $graphname);
             }
         }
         return true;
@@ -335,10 +322,9 @@ class quiz_overview_report extends quiz_attempts_report {
      * @param object $attempt the quiz attempt to regrade.
      * @param bool $dryrun if true, do a pretend regrade, otherwise do it for real.
      * @param array $slots if null, regrade all questions, otherwise, just regrade
-     *      the questions with those slots.
-     * @return array messages array with keys slot number, and values reasons why that slot cannot be regraded.
+     *      the quetsions with those slots.
      */
-    public function regrade_attempt($attempt, $dryrun = false, $slots = null): array {
+    protected function regrade_attempt($attempt, $dryrun = false, $slots = null) {
         global $DB;
         // Need more time for a quiz with many questions.
         core_php_time_limit::raise(300);
@@ -351,20 +337,12 @@ class quiz_overview_report extends quiz_attempts_report {
             $slots = $quba->get_slots();
         }
 
-        $messages = [];
         $finished = $attempt->state == quiz_attempt::FINISHED;
         foreach ($slots as $slot) {
             $qqr = new stdClass();
             $qqr->oldfraction = $quba->get_question_fraction($slot);
-            $otherquestionversion = $this->get_new_question_for_regrade($attempt, $quba, $slot);
 
-            $message = $quba->validate_can_regrade_with_other_version($slot, $otherquestionversion);
-            if ($message) {
-                $messages[$slot] = $message;
-                continue;
-            }
-
-            $quba->regrade_question($slot, $finished, null, $otherquestionversion);
+            $quba->regrade_question($slot, $finished);
 
             $qqr->newfraction = $quba->get_question_fraction($slot);
 
@@ -379,17 +357,6 @@ class quiz_overview_report extends quiz_attempts_report {
 
         if (!$dryrun) {
             question_engine::save_questions_usage_by_activity($quba);
-
-            $params = array(
-              'objectid' => $attempt->id,
-              'relateduserid' => $attempt->userid,
-              'context' => $this->context,
-              'other' => array(
-                'quizid' => $attempt->quiz
-              )
-            );
-            $event = \mod_quiz\event\attempt_regraded::create($params);
-            $event->trigger();
         }
 
         $transaction->allow_commit();
@@ -398,56 +365,6 @@ class quiz_overview_report extends quiz_attempts_report {
         $quba = null;
         $transaction = null;
         gc_collect_cycles();
-        return $messages;
-    }
-
-    /**
-     * For use in tests only. Clear the cached regrade data.
-     */
-    public function clear_regrade_date_cache(): void {
-        $this->structureforregrade = null;
-        $this->newquestionidsforold = null;
-    }
-
-    /**
-     * Work out of we should be using a new question version for a particular slot in a regrade.
-     *
-     * @param stdClass $attempt the attempt being regraded.
-     * @param question_usage_by_activity $quba the question_usage corresponding to that.
-     * @param int $slot which slot is currently being regraded.
-     * @return question_definition other question version to use for this slot.
-     */
-    protected function get_new_question_for_regrade(stdClass $attempt,
-            question_usage_by_activity $quba, int $slot): question_definition {
-
-        // If the cache is empty, get information about all the slots.
-        if ($this->structureforregrade === null) {
-            $this->newquestionidsforold = [];
-            // Load the data about all the non-random slots now.
-            $this->structureforregrade = qbank_helper::get_question_structure(
-                    $attempt->quiz, $this->context);
-        }
-
-        // Because of 'Redo question in attempt' feature, we need to find the original slot number.
-        $originalslot = $quba->get_question_attempt_metadata($slot, 'originalslot') ?? $slot;
-
-        // If this is a non-random slot, we will have the right info cached.
-        if ($this->structureforregrade[$originalslot]->qtype != 'random') {
-            // This is a non-random slot.
-            return question_bank::load_question($this->structureforregrade[$originalslot]->questionid);
-        }
-
-        // We must be dealing with a random question. Check that cache.
-        $currentquestion = $quba->get_question_attempt($originalslot)->get_question(false);
-        if (isset($this->newquestionidsforold[$currentquestion->id])) {
-            return question_bank::load_question($this->newquestionidsforold[$currentquestion->id]);
-        }
-
-        // This is a random question we have not seen yet. Find the latest version.
-        $versionsoptions = qbank_helper::get_version_options($currentquestion->id);
-        $latestversion = reset($versionsoptions);
-        $this->newquestionidsforold[$currentquestion->id] = $latestversion->questionid;
-        return question_bank::load_question($latestversion->questionid);
     }
 
     /**
@@ -465,8 +382,7 @@ class quiz_overview_report extends quiz_attempts_report {
         global $DB;
         $this->unlock_session();
 
-        $userfieldsapi = \core_user\fields::for_name();
-        $sql = "SELECT quiza.*, " . $userfieldsapi->get_sql('u', false, '', '', false)->selects . "
+        $sql = "SELECT quiza.*, " . get_all_user_name_fields(true, 'u') . "
                   FROM {quiz_attempts} quiza
                   JOIN {user} u ON u.id = quiza.userid";
         $where = "quiz = :qid AND preview = 0";
@@ -533,9 +449,8 @@ class quiz_overview_report extends quiz_attempts_report {
         }
 
         list($uniqueidcondition, $params) = $DB->get_in_or_equal(array_keys($attemptquestions));
-        $userfieldsapi = \core_user\fields::for_name();
         $attempts = $DB->get_records_sql("
-                SELECT quiza.*, " . $userfieldsapi->get_sql('u', false, '', '', false)->selects . "
+                SELECT quiza.*, " . get_all_user_name_fields(true, 'u') . "
                   FROM {quiz_attempts} quiza
                   JOIN {user} u ON u.id = quiza.userid
                  WHERE quiza.uniqueid $uniqueidcondition
@@ -554,7 +469,7 @@ class quiz_overview_report extends quiz_attempts_report {
      *
      * Given an array of attempts, it regrades them all, or does a dry run.
      * Each object in the attempts array must be a row from the quiz_attempts
-     * table, with the \core_user\fields::for_name() fields from the user table joined in.
+     * table, with the get_all_user_name_fields from the user table joined in.
      * In addition, if $attempt->regradeonlyslots is set, then only those slots
      * are regraded, otherwise all slots are regraded.
      *
@@ -565,7 +480,6 @@ class quiz_overview_report extends quiz_attempts_report {
      */
     protected function regrade_batch_of_attempts($quiz, array $attempts,
             bool $dryrun, \core\dml\sql_join $groupstudentsjoins) {
-        global $OUTPUT;
         $this->clear_regrade_table($quiz, $groupstudentsjoins);
 
         $progressbar = new progress_bar('quiz_overview_regrade', 500, true);
@@ -583,17 +497,7 @@ class quiz_overview_report extends quiz_attempts_report {
             }
             $progressbar->update($a['done'], $a['count'],
                     get_string('regradingattemptxofywithdetails', 'quiz_overview', $a));
-            $messages = $this->regrade_attempt($attempt, $dryrun, $attempt->regradeonlyslots);
-            if ($messages) {
-                $items = [];
-                foreach ($messages as $slot => $message) {
-                    $items[] = get_string('regradingattemptissue', 'quiz_overview',
-                            ['slot' => $slot, 'reason' => $message]);
-                }
-                echo $OUTPUT->notification(
-                        html_writer::tag('p', get_string('regradingattemptxofyproblem', 'quiz_overview', $a)) .
-                        html_writer::alist($items), \core\output\notification::NOTIFY_WARNING);
-            }
+            $this->regrade_attempt($attempt, $dryrun, $attempt->regradeonlyslots);
         }
         $progressbar->update($a['done'], $a['count'],
                 get_string('regradedsuccessfullyxofy', 'quiz_overview', $a));
@@ -747,7 +651,7 @@ class quiz_overview_report extends quiz_attempts_report {
     protected static function get_chart($labels, $data) {
         $chart = new \core\chart_bar();
         $chart->set_labels($labels);
-        $chart->get_xaxis(0, true)->set_label(get_string('gradenoun'));
+        $chart->get_xaxis(0, true)->set_label(get_string('grade'));
 
         $yaxis = $chart->get_yaxis(0, true);
         $yaxis->set_label(get_string('participants'));

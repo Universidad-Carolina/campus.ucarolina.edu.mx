@@ -55,16 +55,12 @@ class field_controller extends \core_customfield\field_controller {
 
         $mform->addElement('text', 'configdata[displaysize]', get_string('displaysize', 'customfield_text'), ['size' => 6]);
         $mform->setType('configdata[displaysize]', PARAM_INT);
-        if (!$this->get_configdata_property('displaysize')) {
-            $mform->setDefault('configdata[displaysize]', 50);
-        }
+        $mform->setDefault('configdata[displaysize]', 50);
         $mform->addRule('configdata[displaysize]', null, 'numeric', null, 'client');
 
         $mform->addElement('text', 'configdata[maxlength]', get_string('maxlength', 'customfield_text'), ['size' => 6]);
         $mform->setType('configdata[maxlength]', PARAM_INT);
-        if (!$this->get_configdata_property('maxlength')) {
-            $mform->setDefault('configdata[maxlength]', 1333);
-        }
+        $mform->setDefault('configdata[maxlength]', 1333);
         $mform->addRule('configdata[maxlength]', null, 'numeric', null, 'client');
 
         $mform->addElement('selectyesno', 'configdata[ispassword]', get_string('ispassword', 'customfield_text'));
@@ -117,7 +113,7 @@ class field_controller extends \core_customfield\field_controller {
                     $errors['configdata[link]'] = get_string('errorconfiglinkplaceholder', 'customfield_text');
                 } else if (!validateUrlSyntax(str_replace('$$', 'XYZ', $link), 's+H?S?F-E-u-P-a?I?p?f?q?r?')) {
                     // This validation is more strict than PARAM_URL - it requires the protocol and it must be either http or https.
-                    $errors['configdata[link]'] = get_string('errorconfiglinksyntax', 'customfield_text');
+                    $errors['configdata[link]'] = get_string('errorconfigdisplaysize', 'customfield_text');
                 }
             }
         }

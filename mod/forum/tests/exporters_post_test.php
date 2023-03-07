@@ -22,15 +22,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_forum;
-
-use mod_forum\local\entities\discussion as discussion_entity;
-use mod_forum\local\entities\post as post_entity;
-use mod_forum\local\exporters\post as post_exporter;
-use mod_forum\local\managers\capability as capability_manager;
-use mod_forum_tests_generator_trait;
-
 defined('MOODLE_INTERNAL') || die();
+
+use \mod_forum\local\entities\discussion as discussion_entity;
+use \mod_forum\local\entities\post as post_entity;
+use \mod_forum\local\exporters\post as post_exporter;
+use \mod_forum\local\managers\capability as capability_manager;
 
 global $CFG;
 require_once(__DIR__ . '/generator_trait.php');
@@ -43,18 +40,14 @@ require_once($CFG->dirroot . '/rating/lib.php');
  * @copyright  2019 Ryan Wyllie <ryan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class exporters_post_test extends \advanced_testcase {
+class mod_forum_exporters_post_testcase extends advanced_testcase {
     // Make use of the test generator trait.
     use mod_forum_tests_generator_trait;
 
     /**
      * Test the export function returns expected values.
-     *
-     * @dataProvider export_post_provider
-     * @param bool $istimed True if this is a timed post
-     * @param int $addtime Seconds to be added to the current time
      */
-    public function test_export_post($istimed = false, $addtime = 0) {
+    public function test_export_post() {
         global $CFG, $PAGE;
         $this->resetAfterTest();
 
@@ -67,19 +60,13 @@ class exporters_post_test extends \advanced_testcase {
         $course = $datagenerator->create_course();
         $forum = $datagenerator->create_module('forum', ['course' => $course->id]);
         $coursemodule = get_coursemodule_from_instance('forum', $forum->id);
-        $context = \context_module::instance($coursemodule->id);
-        $now = time();
-
-        $forumgenparams = [
+        $context = context_module::instance($coursemodule->id);
+        $discussion = $forumgenerator->create_discussion((object) [
             'course' => $forum->course,
             'userid' => $user->id,
-            'forum' => $forum->id,
-        ];
-        if ($istimed) {
-            $forumgenparams['timestart'] = $now + $addtime;
-        }
-        $discussion = $forumgenerator->create_discussion((object) $forumgenparams);
-
+            'forum' => $forum->id
+        ]);
+        $now = time();
         $post = $forumgenerator->create_post((object) [
             'discussion' => $discussion->id,
             'parent' => 0,
@@ -131,11 +118,11 @@ class exporters_post_test extends \advanced_testcase {
         );
         $managerfactory = \mod_forum\local\container::get_manager_factory();
         $entityfactory = \mod_forum\local\container::get_entity_factory();
-        $forum = $entityfactory->get_forum_from_stdClass($forum, $context, $coursemodule, $course);
-        $discussion = $entityfactory->get_discussion_from_stdClass($discussion);
-        $post = $entityfactory->get_post_from_stdClass($post);
-        $author = $entityfactory->get_author_from_stdClass($user);
-        $authorcontext = \context_user::instance($author->get_id());
+        $forum = $entityfactory->get_forum_from_stdclass($forum, $context, $coursemodule, $course);
+        $discussion = $entityfactory->get_discussion_from_stdclass($discussion);
+        $post = $entityfactory->get_post_from_stdclass($post);
+        $author = $entityfactory->get_author_from_stdclass($user);
+        $authorcontext = context_user::instance($author->get_id());
 
         $exporter = new post_exporter($post, [
             'legacydatamapperfactory' => \mod_forum\local\container::get_legacy_data_mapper_factory(),
@@ -163,11 +150,7 @@ class exporters_post_test extends \advanced_testcase {
         $this->assertEquals($discussion->get_id(), $exportedpost->discussionid);
         $this->assertEquals(false, $exportedpost->hasparent);
         $this->assertEquals(null, $exportedpost->parentid);
-        if ($istimed && ($addtime > 0)) {
-            $this->assertEquals($now + $addtime, $exportedpost->timecreated);
-        } else {
-            $this->assertEquals($now, $exportedpost->timecreated);
-        }
+        $this->assertEquals($now, $exportedpost->timecreated);
         $this->assertEquals(null, $exportedpost->unread);
         $this->assertEquals(false, $exportedpost->isdeleted);
         $this->assertEquals($canview, $exportedpost->capabilities['view']);
@@ -197,26 +180,6 @@ class exporters_post_test extends \advanced_testcase {
     }
 
     /**
-     * Data provider for test_export_post().
-     *
-     * @return array
-     */
-    public function export_post_provider(): array {
-        return [
-            'Simple export' => [
-            ],
-            'Test timed post future' => [
-                true,
-                1000
-            ],
-            'Test timed post past' => [
-                true,
-                -1000
-            ],
-        ];
-    }
-
-    /**
      * Test exporting of a deleted post.
      */
     public function test_export_deleted_post() {
@@ -232,7 +195,7 @@ class exporters_post_test extends \advanced_testcase {
         $course = $datagenerator->create_course();
         $forum = $datagenerator->create_module('forum', ['course' => $course->id]);
         $coursemodule = get_coursemodule_from_instance('forum', $forum->id);
-        $context = \context_module::instance($coursemodule->id);
+        $context = context_module::instance($coursemodule->id);
         $discussion = $forumgenerator->create_discussion((object) [
             'course' => $forum->course,
             'userid' => $user->id,
@@ -286,11 +249,11 @@ class exporters_post_test extends \advanced_testcase {
         );
         $managerfactory = \mod_forum\local\container::get_manager_factory();
         $entityfactory = \mod_forum\local\container::get_entity_factory();
-        $forum = $entityfactory->get_forum_from_stdClass($forum, $context, $coursemodule, $course);
-        $discussion = $entityfactory->get_discussion_from_stdClass($discussion);
-        $post = $entityfactory->get_post_from_stdClass($post);
-        $author = $entityfactory->get_author_from_stdClass($user);
-        $authorcontext = \context_user::instance($author->get_id());
+        $forum = $entityfactory->get_forum_from_stdclass($forum, $context, $coursemodule, $course);
+        $discussion = $entityfactory->get_discussion_from_stdclass($discussion);
+        $post = $entityfactory->get_post_from_stdclass($post);
+        $author = $entityfactory->get_author_from_stdclass($user);
+        $authorcontext = context_user::instance($author->get_id());
 
         $exporter = new post_exporter($post, [
             'legacydatamapperfactory' => \mod_forum\local\container::get_legacy_data_mapper_factory(),
@@ -340,7 +303,7 @@ class exporters_post_test extends \advanced_testcase {
         $course = $datagenerator->create_course();
         $forum = $datagenerator->create_module('forum', ['course' => $course->id]);
         $coursemodule = get_coursemodule_from_instance('forum', $forum->id);
-        $context = \context_module::instance($coursemodule->id);
+        $context = context_module::instance($coursemodule->id);
         $discussion = $forumgenerator->create_discussion((object) [
             'course' => $forum->course,
             'userid' => $user->id,
@@ -394,11 +357,11 @@ class exporters_post_test extends \advanced_testcase {
         );
         $managerfactory = \mod_forum\local\container::get_manager_factory();
         $entityfactory = \mod_forum\local\container::get_entity_factory();
-        $forum = $entityfactory->get_forum_from_stdClass($forum, $context, $coursemodule, $course);
-        $discussion = $entityfactory->get_discussion_from_stdClass($discussion);
-        $post = $entityfactory->get_post_from_stdClass($post);
-        $author = $entityfactory->get_author_from_stdClass($user);
-        $authorcontext = \context_user::instance($author->get_id());
+        $forum = $entityfactory->get_forum_from_stdclass($forum, $context, $coursemodule, $course);
+        $discussion = $entityfactory->get_discussion_from_stdclass($discussion);
+        $post = $entityfactory->get_post_from_stdclass($post);
+        $author = $entityfactory->get_author_from_stdclass($user);
+        $authorcontext = context_user::instance($author->get_id());
 
         $exporter = new post_exporter($post, [
             'legacydatamapperfactory' => \mod_forum\local\container::get_legacy_data_mapper_factory(),
@@ -495,37 +458,37 @@ class test_capability_manager extends capability_manager {
     /**
      * Override can_view_post
      *
-     * @param \stdClass $user The user
+     * @param stdClass $user The user
      * @param discussion_entity $discussion The discussion
      * @param post_entity $post The post
      * @return bool
      */
-    public function can_view_post(\stdClass $user, discussion_entity $discussion, post_entity $post) : bool {
+    public function can_view_post(stdClass $user, discussion_entity $discussion, post_entity $post) : bool {
         return $this->view;
     }
 
     /**
      * Override can_edit_post
      *
-     * @param \stdClass $user The user
+     * @param stdClass $user The user
      * @param discussion_entity $discussion The discussion
      * @param post_entity $post The post
      * @return bool
      */
-    public function can_edit_post(\stdClass $user, discussion_entity $discussion, post_entity $post) : bool {
+    public function can_edit_post(stdClass $user, discussion_entity $discussion, post_entity $post) : bool {
         return $this->edit;
     }
 
     /**
      * Override can_delete_post
      *
-     * @param \stdClass $user The user
+     * @param stdClass $user The user
      * @param discussion_entity $discussion The discussion
      * @param post_entity $post The post
      * @param bool $hasreplies
      * @return bool
      */
-    public function can_delete_post(\stdClass $user, discussion_entity $discussion, post_entity $post,
+    public function can_delete_post(stdClass $user, discussion_entity $discussion, post_entity $post,
                                     bool $hasreplies = false) : bool {
         return $this->delete;
     }
@@ -533,64 +496,64 @@ class test_capability_manager extends capability_manager {
     /**
      * Override can_split_post
      *
-     * @param \stdClass $user The user
+     * @param stdClass $user The user
      * @param discussion_entity $discussion The discussion
      * @param post_entity $post The post
      * @return bool
      */
-    public function can_split_post(\stdClass $user, discussion_entity $discussion, post_entity $post) : bool {
+    public function can_split_post(stdClass $user, discussion_entity $discussion, post_entity $post) : bool {
         return $this->split;
     }
 
     /**
      * Override can_reply_to_post
      *
-     * @param \stdClass $user The user
+     * @param stdClass $user The user
      * @param discussion_entity $discussion The discussion
      * @param post_entity $post The post
      * @return bool
      */
-    public function can_reply_to_post(\stdClass $user, discussion_entity $discussion, post_entity $post) : bool {
+    public function can_reply_to_post(stdClass $user, discussion_entity $discussion, post_entity $post) : bool {
         return $this->reply;
     }
 
     /**
      * Override can_export_post
      *
-     * @param \stdClass $user The user
+     * @param stdClass $user The user
      * @param post_entity $post The post
      * @return bool
      */
-    public function can_export_post(\stdClass $user, post_entity $post) : bool {
+    public function can_export_post(stdClass $user, post_entity $post) : bool {
         return $this->export;
     }
 
     /**
      * Override can_manually_control_post_read_status
      *
-     * @param \stdClass $user The user
+     * @param stdClass $user The user
      * @return bool
      */
-    public function can_manually_control_post_read_status(\stdClass $user) : bool {
+    public function can_manually_control_post_read_status(stdClass $user) : bool {
         return $this->controlreadstatus;
     }
 
     /**
      * Override can_reply_privately_to_post
-     * @param \stdClass $user
+     * @param stdClass $user
      * @param post_entity $post
      * @return bool
      */
-    public function can_reply_privately_to_post(\stdClass $user, post_entity $post) : bool {
+    public function can_reply_privately_to_post(stdClass $user, post_entity $post) : bool {
         return $this->canreplyprivatelytopost;
     }
 
     /**
      * Override can_self_enrol
-     * @param \stdClass $user
+     * @param stdClass $user
      * @return bool
      */
-    public function can_self_enrol(\stdClass $user) : bool {
+    public function can_self_enrol(stdClass $user) : bool {
         return $this->canenrol;
     }
 }

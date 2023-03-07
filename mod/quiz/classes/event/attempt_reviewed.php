@@ -47,7 +47,7 @@ class attempt_reviewed extends \core\event\base {
     protected function init() {
         $this->data['objecttable'] = 'quiz_attempts';
         $this->data['crud'] = 'r';
-        $this->data['edulevel'] = self::LEVEL_PARTICIPATING;
+        $this->data['edulevel'] = self::LEVEL_TEACHING;
     }
 
     /**

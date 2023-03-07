@@ -35,10 +35,10 @@ class profile_field_text extends profile_field_base {
      */
     public function display_data() {
         // Default formatting.
-        $data = format_string($this->data);
+        $data = parent::display_data();
 
         // Are we creating a link?
-        if (!empty($this->field->param4) && !empty($data)) {
+        if (!empty($this->field->param4) and !empty($data)) {
 
             // Define the target.
             if (! empty($this->field->param5)) {
@@ -48,8 +48,7 @@ class profile_field_text extends profile_field_base {
             }
 
             // Create the link.
-            $data = '<a href="'.str_replace('$$', urlencode($data),
-                     $this->field->param4).'" '.$target.'>'.htmlspecialchars($data, ENT_COMPAT).'</a>';
+            $data = '<a href="'.str_replace('$$', urlencode($data), $this->field->param4).'" '.$target.'>'.htmlspecialchars($data).'</a>';
         }
 
         return $data;
@@ -65,8 +64,7 @@ class profile_field_text extends profile_field_base {
         $fieldtype = ($this->field->param3 == 1 ? 'password' : 'text');
 
         // Create the form field.
-        $mform->addElement($fieldtype, $this->inputname, format_string($this->field->name),
-                    'maxlength="'.$maxlength.'" size="'.$size.'" ');
+        $mform->addElement($fieldtype, $this->inputname, format_string($this->field->name), 'maxlength="'.$maxlength.'" size="'.$size.'" ');
         $mform->setType($this->inputname, PARAM_TEXT);
     }
 

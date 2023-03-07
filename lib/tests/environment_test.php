@@ -14,10 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core;
-
-use environment_results;
-
 /**
  * Moodle environment test.
  *
@@ -26,7 +22,14 @@ use environment_results;
  * @copyright  2013 Petr Skoda {@link http://skodak.org}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class environment_test extends \advanced_testcase {
+
+defined('MOODLE_INTERNAL') || die();
+
+
+/**
+ * Do standard environment.xml tests.
+ */
+class core_environment_testcase extends advanced_testcase {
 
     /**
      * Test the environment check status.

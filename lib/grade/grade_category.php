@@ -227,10 +227,9 @@ class grade_category extends grade_object {
      * In addition to update() as defined in grade_object, call force_regrading of parent categories, if applicable.
      *
      * @param string $source from where was the object updated (mod/forum, manual, etc.)
-     * @param bool $isbulkupdate If bulk grade update is happening.
      * @return bool success
      */
-    public function update($source = null, $isbulkupdate = false) {
+    public function update($source=null) {
         // load the grade item or create a new one
         $this->load_grade_item();
 
@@ -353,13 +352,12 @@ class grade_category extends grade_object {
      * This method also creates an associated grade_item if this wasn't done during construction.
      *
      * @param string $source from where was the object inserted (mod/forum, manual, etc.)
-     * @param bool $isbulkupdate If bulk grade update is happening.
      * @return int PK ID if successful, false otherwise
      */
-    public function insert($source = null, $isbulkupdate = false) {
+    public function insert($source=null) {
 
         if (empty($this->courseid)) {
-            throw new \moodle_exception('cannotinsertgrade');
+            print_error('cannotinsertgrade');
         }
 
         if (empty($this->parent)) {
@@ -472,10 +470,9 @@ class grade_category extends grade_object {
      *  4. Save them in final grades of associated category grade item
      *
      * @param int $userid The user ID if final grade generation should be limited to a single user
-     * @param \core\progress\base|null $progress Optional progress indicator
      * @return bool
      */
-    public function generate_grades($userid=null, ?\core\progress\base $progress = null) {
+    public function generate_grades($userid=null) {
         global $CFG, $DB;
 
         $this->load_grade_item();
@@ -565,12 +562,6 @@ class grade_category extends grade_object {
 
                 if ($this->grade_item->id == $grade->itemid) {
                     $oldgrade = $grade;
-                }
-
-                if ($progress) {
-                    // Incrementing the progress by nothing causes it to send an update (once per second)
-                    // to the web browser so as to prevent the connection timing out.
-                    $progress->increment_progress(0);
                 }
             }
             $this->aggregate_grades($prevuser,
@@ -2318,21 +2309,18 @@ class grade_category extends grade_object {
      * Returns the most descriptive field for this grade category
      *
      * @return string name
-     * @param bool $escape Whether the returned category name is to be HTML escaped or not.
      */
-    public function get_name($escape = true) {
+    public function get_name() {
         global $DB;
         // For a course category, we return the course name if the fullname is set to '?' in the DB (empty in the category edit form)
         if (empty($this->parent) && $this->fullname == '?') {
             $course = $DB->get_record('course', array('id'=> $this->courseid));
-            return format_string($course->fullname, false, ['context' => context_course::instance($this->courseid),
-                'escape' => $escape]);
+            return format_string($course->fullname, false, array("context" => context_course::instance($this->courseid)));
 
         } else {
             // Grade categories can't be set up at system context (unlike scales and outcomes)
             // We therefore must have a courseid, and don't need to handle system contexts when filtering.
-            return format_string($this->fullname, false, ['context' => context_course::instance($this->courseid),
-                'escape' => $escape]);
+            return format_string($this->fullname, false, array("context" => context_course::instance($this->courseid)));
         }
     }
 
@@ -2376,11 +2364,11 @@ class grade_category extends grade_object {
         }
 
         if ($parentid == $this->id) {
-            throw new \moodle_exception('cannotassignselfasparent');
+            print_error('cannotassignselfasparent');
         }
 
         if (empty($this->parent) and $this->is_course_category()) {
-            throw new \moodle_exception('cannothaveparentcate');
+            print_error('cannothaveparentcate');
         }
 
         // find parent and check course id

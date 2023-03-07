@@ -14,10 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_scorm;
-
-use externallib_advanced_testcase;
-use mod_scorm_external;
+/**
+ * SCORM module external functions tests
+ *
+ * @package    mod_scorm
+ * @category   external
+ * @copyright  2015 Juan Leyva <juan@moodle.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @since      Moodle 3.0
+ */
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -35,12 +40,12 @@ require_once($CFG->dirroot . '/mod/scorm/lib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @since      Moodle 3.0
  */
-class externallib_test extends externallib_advanced_testcase {
+class mod_scorm_external_testcase extends externallib_advanced_testcase {
 
     /**
      * Set up for every test
      */
-    public function setUp(): void {
+    public function setUp() {
         global $DB, $CFG;
         $this->resetAfterTest();
         $this->setAdminUser();
@@ -50,7 +55,7 @@ class externallib_test extends externallib_advanced_testcase {
         $this->course = $this->getDataGenerator()->create_course(array('enablecompletion' => 1));
         $this->scorm = $this->getDataGenerator()->create_module('scorm', array('course' => $this->course->id),
             array('completion' => 2, 'completionview' => 1));
-        $this->context = \context_module::instance($this->scorm->cmid);
+        $this->context = context_module::instance($this->scorm->cmid);
         $this->cm = get_coursemodule_from_instance('scorm', $this->scorm->id);
 
         // Create users.
@@ -74,7 +79,7 @@ class externallib_test extends externallib_advanced_testcase {
         try {
             mod_scorm_external::view_scorm(0);
             $this->fail('Exception expected due to invalid mod_scorm instance id.');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('invalidrecord', $e->errorcode);
         }
 
@@ -84,7 +89,7 @@ class externallib_test extends externallib_advanced_testcase {
         try {
             mod_scorm_external::view_scorm($this->scorm->id);
             $this->fail('Exception expected due to not enrolled user.');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('requireloginerror', $e->errorcode);
         }
 
@@ -96,7 +101,7 @@ class externallib_test extends externallib_advanced_testcase {
         $sink = $this->redirectEvents();
 
         $result = mod_scorm_external::view_scorm($this->scorm->id);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::view_scorm_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::view_scorm_returns(), $result);
 
         $events = $sink->get_events();
         $this->assertCount(1, $events);
@@ -120,7 +125,7 @@ class externallib_test extends externallib_advanced_testcase {
 
         // Retrieve my attempts (should be 0).
         $result = mod_scorm_external::get_scorm_attempt_count($this->scorm->id, $this->student->id);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_attempt_count_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_attempt_count_returns(), $result);
         $this->assertEquals(0, $result['attemptscount']);
     }
 
@@ -135,7 +140,7 @@ class externallib_test extends externallib_advanced_testcase {
         scorm_insert_track($this->student->id, $this->scorm->id, $sco->id, 2, 'cmi.core.lesson_status', 'completed');
 
         $result = mod_scorm_external::get_scorm_attempt_count($this->scorm->id, $this->student->id);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_attempt_count_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_attempt_count_returns(), $result);
         $this->assertEquals(2, $result['attemptscount']);
     }
 
@@ -150,7 +155,7 @@ class externallib_test extends externallib_advanced_testcase {
         scorm_insert_track($this->student->id, $this->scorm->id, $sco->id, 2, 'cmi.core.credit', '0');
 
         $result = mod_scorm_external::get_scorm_attempt_count($this->scorm->id, $this->student->id, true);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_attempt_count_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_attempt_count_returns(), $result);
         $this->assertEquals(1, $result['attemptscount']);
     }
 
@@ -165,10 +170,13 @@ class externallib_test extends externallib_advanced_testcase {
 
         // I should be able to view the attempts for my students.
         $result = mod_scorm_external::get_scorm_attempt_count($this->scorm->id, $this->student->id);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_attempt_count_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_attempt_count_returns(), $result);
         $this->assertEquals(1, $result['attemptscount']);
     }
 
+    /**
+     * @expectedException required_capability_exception
+     */
     public function test_mod_scorm_get_scorm_attempt_count_others_as_student() {
         // Create a second student.
         $student2 = self::getDataGenerator()->create_user();
@@ -178,24 +186,27 @@ class externallib_test extends externallib_advanced_testcase {
         self::setUser($student2);
 
         // I should not be able to view the attempts of another student.
-        $this->expectException(\required_capability_exception::class);
         mod_scorm_external::get_scorm_attempt_count($this->scorm->id, $this->student->id);
     }
 
+    /**
+     * @expectedException moodle_exception
+     */
     public function test_mod_scorm_get_scorm_attempt_count_invalid_instanceid() {
         // As student.
         self::setUser($this->student);
 
         // Test invalid instance id.
-        $this->expectException(\moodle_exception::class);
         mod_scorm_external::get_scorm_attempt_count(0, $this->student->id);
     }
 
+    /**
+     * @expectedException moodle_exception
+     */
     public function test_mod_scorm_get_scorm_attempt_count_invalid_userid() {
         // As student.
         self::setUser($this->student);
 
-        $this->expectException(\moodle_exception::class);
         mod_scorm_external::get_scorm_attempt_count($this->scorm->id, -1);
     }
 
@@ -215,7 +226,7 @@ class externallib_test extends externallib_advanced_testcase {
         $course = self::getDataGenerator()->create_course();
 
         // First scorm, dates restriction.
-        $record = new \stdClass();
+        $record = new stdClass();
         $record->course = $course->id;
         $record->timeopen = time() + DAYSECS;
         $record->timeclose = $record->timeopen + DAYSECS;
@@ -234,7 +245,7 @@ class externallib_test extends externallib_advanced_testcase {
         try {
              mod_scorm_external::get_scorm_scoes($scorm->id);
             $this->fail('Exception expected due to invalid dates.');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('notopenyet', $e->errorcode);
         }
 
@@ -245,14 +256,14 @@ class externallib_test extends externallib_advanced_testcase {
         try {
              mod_scorm_external::get_scorm_scoes($scorm->id);
             $this->fail('Exception expected due to invalid dates.');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('expired', $e->errorcode);
         }
 
         // Retrieve my scoes, user with permission.
         self::setUser($teacher);
         $result = mod_scorm_external::get_scorm_scoes($scorm->id);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_scoes_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_scoes_returns(), $result);
         $this->assertCount(2, $result['scoes']);
         $this->assertCount(0, $result['warnings']);
 
@@ -284,7 +295,7 @@ class externallib_test extends externallib_advanced_testcase {
         // Use organization.
         $organization = 'golf_sample_default_org';
         $result = mod_scorm_external::get_scorm_scoes($scorm->id, $organization);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_scoes_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_scoes_returns(), $result);
         $this->assertCount(1, $result['scoes']);
         $this->assertEquals($organization, $result['scoes'][0]['organization']);
         $this->assertCount(0, $result['warnings']);
@@ -293,7 +304,7 @@ class externallib_test extends externallib_advanced_testcase {
         try {
              mod_scorm_external::get_scorm_scoes(0);
             $this->fail('Exception expected due to invalid instance id.');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('invalidrecord', $e->errorcode);
         }
 
@@ -308,13 +319,13 @@ class externallib_test extends externallib_advanced_testcase {
         // As student.
         self::setUser($this->student);
 
-        $record = new \stdClass();
+        $record = new stdClass();
         $record->course = $this->course->id;
         $record->packagefilepath = $CFG->dirroot.'/mod/scorm/tests/packages/complexscorm.zip';
         $scorm = self::getDataGenerator()->create_module('scorm', $record);
 
         $result = mod_scorm_external::get_scorm_scoes($scorm->id);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_scoes_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_scoes_returns(), $result);
         $this->assertCount(9, $result['scoes']);
         $this->assertCount(0, $result['warnings']);
 
@@ -358,7 +369,7 @@ class externallib_test extends externallib_advanced_testcase {
         $course = self::getDataGenerator()->create_course();
 
         // First scorm.
-        $record = new \stdClass();
+        $record = new stdClass();
         $record->course = $course->id;
         $scorm = self::getDataGenerator()->create_module('scorm', $record);
 
@@ -376,7 +387,7 @@ class externallib_test extends externallib_advanced_testcase {
         scorm_insert_track($student1->id, $scorm->id, $sco->id, 2, 'cmi.core.lesson_status', 'completed');
 
         $result = mod_scorm_external::get_scorm_user_data($scorm->id, 1);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_user_data_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_user_data_returns(), $result);
         $this->assertCount(2, $result['data']);
         // Find our tracking data.
         $found = 0;
@@ -396,7 +407,7 @@ class externallib_test extends externallib_advanced_testcase {
         try {
              mod_scorm_external::get_scorm_user_data(0, 1);
             $this->fail('Exception expected due to invalid instance id.');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('invalidrecord', $e->errorcode);
         }
     }
@@ -416,7 +427,7 @@ class externallib_test extends externallib_advanced_testcase {
         $course = self::getDataGenerator()->create_course();
 
         // First scorm, dates restriction.
-        $record = new \stdClass();
+        $record = new stdClass();
         $record->course = $course->id;
         $record->timeopen = time() + DAYSECS;
         $record->timeclose = $record->timeopen + DAYSECS;
@@ -448,7 +459,7 @@ class externallib_test extends externallib_advanced_testcase {
         try {
             mod_scorm_external::insert_scorm_tracks($sco->id, 1, $tracks);
             $this->fail('Exception expected due to dates');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('notopenyet', $e->errorcode);
         }
 
@@ -459,7 +470,7 @@ class externallib_test extends externallib_advanced_testcase {
         try {
             mod_scorm_external::insert_scorm_tracks($sco->id, 1, $tracks);
             $this->fail('Exception expected due to dates');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('expired', $e->errorcode);
         }
 
@@ -467,7 +478,7 @@ class externallib_test extends externallib_advanced_testcase {
         try {
              mod_scorm_external::insert_scorm_tracks(0, 1, $tracks);
             $this->fail('Exception expected due to invalid sco id.');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('cannotfindsco', $e->errorcode);
         }
 
@@ -477,7 +488,7 @@ class externallib_test extends externallib_advanced_testcase {
 
         // Retrieve my tracks.
         $result = mod_scorm_external::insert_scorm_tracks($sco->id, 1, $tracks);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::insert_scorm_tracks_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::insert_scorm_tracks_returns(), $result);
         $this->assertCount(0, $result['warnings']);
 
         $trackids = $DB->get_records('scorm_scoes_track', array('userid' => $student->id, 'scoid' => $sco->id,
@@ -507,7 +518,7 @@ class externallib_test extends externallib_advanced_testcase {
         $course = self::getDataGenerator()->create_course();
 
         // First scorm.
-        $record = new \stdClass();
+        $record = new stdClass();
         $record->course = $course->id;
         $scorm = self::getDataGenerator()->create_module('scorm', $record);
 
@@ -525,7 +536,7 @@ class externallib_test extends externallib_advanced_testcase {
         scorm_insert_track($student->id, $scorm->id, $sco->id, 2, 'cmi.core.lesson_status', 'completed');
 
         $result = mod_scorm_external::get_scorm_sco_tracks($sco->id, $student->id, 1);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_sco_tracks_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_sco_tracks_returns(), $result);
         // 7 default elements + 2 custom ones.
         $this->assertCount(9, $result['data']['tracks']);
         $this->assertEquals(1, $result['data']['attempt']);
@@ -544,7 +555,7 @@ class externallib_test extends externallib_advanced_testcase {
 
         // Try invalid attempt.
         $result = mod_scorm_external::get_scorm_sco_tracks($sco->id, $student->id, 10);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_sco_tracks_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_sco_tracks_returns(), $result);
         $this->assertCount(0, $result['data']['tracks']);
         $this->assertEquals(10, $result['data']['attempt']);
         $this->assertCount(1, $result['warnings']);
@@ -554,14 +565,14 @@ class externallib_test extends externallib_advanced_testcase {
         try {
              mod_scorm_external::get_scorm_sco_tracks($sco->id, $otherstudent->id);
             $this->fail('Exception expected due to invalid instance id.');
-        } catch (\required_capability_exception $e) {
+        } catch (required_capability_exception $e) {
             $this->assertEquals('nopermissions', $e->errorcode);
         }
 
         self::setUser($teacher);
         // Ommit the attempt parameter, the function should calculate the last attempt.
         $result = mod_scorm_external::get_scorm_sco_tracks($sco->id, $student->id);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_sco_tracks_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_sco_tracks_returns(), $result);
         // 7 default elements + 1 custom one.
         $this->assertCount(8, $result['data']['tracks']);
         $this->assertEquals(2, $result['data']['attempt']);
@@ -570,14 +581,14 @@ class externallib_test extends externallib_advanced_testcase {
         try {
              mod_scorm_external::get_scorm_sco_tracks(0, 1);
             $this->fail('Exception expected due to invalid instance id.');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('cannotfindsco', $e->errorcode);
         }
         // Invalid user.
         try {
              mod_scorm_external::get_scorm_sco_tracks($sco->id, 0);
             $this->fail('Exception expected due to invalid instance id.');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('invaliduser', $e->errorcode);
         }
     }
@@ -602,7 +613,7 @@ class externallib_test extends externallib_advanced_testcase {
         $course2 = self::getDataGenerator()->create_course();
 
         // First scorm.
-        $record = new \stdClass();
+        $record = new stdClass();
         $record->introformat = FORMAT_HTML;
         $record->course = $course1->id;
         $record->hidetoc = 2;
@@ -611,7 +622,7 @@ class externallib_test extends externallib_advanced_testcase {
         $scorm1 = self::getDataGenerator()->create_module('scorm', $record);
 
         // Second scorm.
-        $record = new \stdClass();
+        $record = new stdClass();
         $record->introformat = FORMAT_HTML;
         $record->course = $course2->id;
         $scorm2 = self::getDataGenerator()->create_module('scorm', $record);
@@ -644,10 +655,10 @@ class externallib_test extends externallib_advanced_testcase {
         $DB->update_record('scorm', $scorm1);
 
         $result = mod_scorm_external::get_scorms_by_courses(array($course1->id));
-        $result = \external_api::clean_returnvalue($returndescription, $result);
+        $result = external_api::clean_returnvalue($returndescription, $result);
         $this->assertCount(1, $result['warnings']);
         // Only 'id', 'coursemodule', 'course', 'name', 'intro', 'introformat', 'introfiles'.
-        $this->assertCount(8, $result['scorms'][0]);
+        $this->assertCount(7, $result['scorms'][0]);
         $this->assertEquals('expired', $result['warnings'][0]['warningcode']);
 
         $scorm1->timeopen = $timenow + DAYSECS;
@@ -655,10 +666,10 @@ class externallib_test extends externallib_advanced_testcase {
         $DB->update_record('scorm', $scorm1);
 
         $result = mod_scorm_external::get_scorms_by_courses(array($course1->id));
-        $result = \external_api::clean_returnvalue($returndescription, $result);
+        $result = external_api::clean_returnvalue($returndescription, $result);
         $this->assertCount(1, $result['warnings']);
         // Only 'id', 'coursemodule', 'course', 'name', 'intro', 'introformat', 'introfiles'.
-        $this->assertCount(8, $result['scorms'][0]);
+        $this->assertCount(7, $result['scorms'][0]);
         $this->assertEquals('notopenyet', $result['warnings'][0]['warningcode']);
 
         // Reset times.
@@ -668,11 +679,11 @@ class externallib_test extends externallib_advanced_testcase {
 
         // Create what we expect to be returned when querying the two courses.
         // First for the student user.
-        $expectedfields = array('id', 'coursemodule', 'course', 'name', 'intro', 'introformat', 'lang', 'version', 'maxgrade',
+        $expectedfields = array('id', 'coursemodule', 'course', 'name', 'intro', 'introformat', 'version', 'maxgrade',
                                 'grademethod', 'whatgrade', 'maxattempt', 'forcecompleted', 'forcenewattempt', 'lastattemptlock',
                                 'displayattemptstatus', 'displaycoursestructure', 'sha1hash', 'md5hash', 'revision', 'launch',
                                 'skipview', 'hidebrowse', 'hidetoc', 'nav', 'navpositionleft', 'navpositiontop', 'auto',
-                                'popup', 'width', 'height', 'timeopen', 'timeclose', 'packagesize',
+                                'popup', 'width', 'height', 'timeopen', 'timeclose', 'displayactivityname', 'packagesize',
                                 'packageurl', 'scormtype', 'reference');
 
         // Add expected coursemodule and data.
@@ -681,25 +692,23 @@ class externallib_test extends externallib_advanced_testcase {
         $scorm1->visible = true;
         $scorm1->groupmode = 0;
         $scorm1->groupingid = 0;
-        $scorm1->lang = '';
 
         $scorm2->coursemodule = $scorm2->cmid;
         $scorm2->section = 0;
         $scorm2->visible = true;
         $scorm2->groupmode = 0;
         $scorm2->groupingid = 0;
-        $scorm2->lang = '';
 
         // SCORM size. The same package is used in both SCORMs.
-        $scormcontext1 = \context_module::instance($scorm1->cmid);
-        $scormcontext2 = \context_module::instance($scorm2->cmid);
+        $scormcontext1 = context_module::instance($scorm1->cmid);
+        $scormcontext2 = context_module::instance($scorm2->cmid);
         $fs = get_file_storage();
         $packagefile = $fs->get_file($scormcontext1->id, 'mod_scorm', 'package', 0, '/', $scorm1->reference);
         $packagesize = $packagefile->get_filesize();
 
-        $packageurl1 = \moodle_url::make_webservice_pluginfile_url(
+        $packageurl1 = moodle_url::make_webservice_pluginfile_url(
                             $scormcontext1->id, 'mod_scorm', 'package', 0, '/', $scorm1->reference)->out(false);
-        $packageurl2 = \moodle_url::make_webservice_pluginfile_url(
+        $packageurl2 = moodle_url::make_webservice_pluginfile_url(
                             $scormcontext2->id, 'mod_scorm', 'package', 0, '/', $scorm2->reference)->out(false);
 
         $scorm1->packagesize = $packagesize;
@@ -736,12 +745,12 @@ class externallib_test extends externallib_advanced_testcase {
 
         // Call the external function passing course ids.
         $result = mod_scorm_external::get_scorms_by_courses(array($course2->id, $course1->id));
-        $result = \external_api::clean_returnvalue($returndescription, $result);
+        $result = external_api::clean_returnvalue($returndescription, $result);
         $this->assertEquals($expectedscorms, $result['scorms']);
 
         // Call the external function without passing course id.
         $result = mod_scorm_external::get_scorms_by_courses();
-        $result = \external_api::clean_returnvalue($returndescription, $result);
+        $result = external_api::clean_returnvalue($returndescription, $result);
         $this->assertEquals($expectedscorms, $result['scorms']);
 
         // Unenrol user from second course and alter expected scorms.
@@ -750,7 +759,7 @@ class externallib_test extends externallib_advanced_testcase {
 
         // Call the external function without passing course id.
         $result = mod_scorm_external::get_scorms_by_courses();
-        $result = \external_api::clean_returnvalue($returndescription, $result);
+        $result = external_api::clean_returnvalue($returndescription, $result);
         $this->assertEquals($expectedscorms, $result['scorms']);
 
         // Call for the second course we unenrolled the user from, expected warning.
@@ -777,7 +786,7 @@ class externallib_test extends externallib_advanced_testcase {
         }
 
         $result = mod_scorm_external::get_scorms_by_courses();
-        $result = \external_api::clean_returnvalue($returndescription, $result);
+        $result = external_api::clean_returnvalue($returndescription, $result);
         $this->assertEquals($expectedscorms, $result['scorms']);
 
         // Even with the SCORM closed in time teacher should retrieve the info.
@@ -789,14 +798,14 @@ class externallib_test extends externallib_advanced_testcase {
         $expectedscorms[0]['timeclose'] = $scorm1->timeclose;
 
         $result = mod_scorm_external::get_scorms_by_courses();
-        $result = \external_api::clean_returnvalue($returndescription, $result);
+        $result = external_api::clean_returnvalue($returndescription, $result);
         $this->assertEquals($expectedscorms, $result['scorms']);
 
         // Admin also should get all the information.
         self::setAdminUser();
 
         $result = mod_scorm_external::get_scorms_by_courses(array($course1->id));
-        $result = \external_api::clean_returnvalue($returndescription, $result);
+        $result = external_api::clean_returnvalue($returndescription, $result);
         $this->assertEquals($expectedscorms, $result['scorms']);
     }
 
@@ -810,7 +819,7 @@ class externallib_test extends externallib_advanced_testcase {
         try {
             mod_scorm_external::launch_sco(0);
             $this->fail('Exception expected due to invalid mod_scorm instance id.');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('invalidrecord', $e->errorcode);
         }
 
@@ -820,7 +829,7 @@ class externallib_test extends externallib_advanced_testcase {
         try {
             mod_scorm_external::launch_sco($this->scorm->id);
             $this->fail('Exception expected due to not enrolled user.');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('requireloginerror', $e->errorcode);
         }
 
@@ -839,7 +848,7 @@ class externallib_test extends externallib_advanced_testcase {
         }
 
         $result = mod_scorm_external::launch_sco($this->scorm->id, $sco->id);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::launch_sco_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::launch_sco_returns(), $result);
 
         $events = $sink->get_events();
         $this->assertCount(3, $events);
@@ -857,7 +866,7 @@ class externallib_test extends externallib_advanced_testcase {
         $this->assertInstanceOf('\core\event\course_module_completion_updated', $event);
 
         // Check completion status.
-        $completion = new \completion_info($this->course);
+        $completion = new completion_info($this->course);
         $completiondata = $completion->get_data($this->cm);
         $this->assertEquals(COMPLETION_VIEWED, $completiondata->completionstate);
 
@@ -865,7 +874,7 @@ class externallib_test extends externallib_advanced_testcase {
         try {
             mod_scorm_external::launch_sco($this->scorm->id, -1);
             $this->fail('Exception expected due to invalid SCO id.');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertEquals('cannotfindsco', $e->errorcode);
         }
     }
@@ -881,17 +890,17 @@ class externallib_test extends externallib_advanced_testcase {
         $student = self::getDataGenerator()->create_user();
         $course = self::getDataGenerator()->create_course();
         // Create the scorm.
-        $record = new \stdClass();
+        $record = new stdClass();
         $record->course = $course->id;
         $scorm = self::getDataGenerator()->create_module('scorm', $record);
-        $context = \context_module::instance($scorm->cmid);
+        $context = context_module::instance($scorm->cmid);
 
         $studentrole = $DB->get_record('role', array('shortname' => 'student'));
         $this->getDataGenerator()->enrol_user($student->id, $course->id, $studentrole->id, 'manual');
 
         self::setUser($student);
         $result = mod_scorm_external::get_scorm_access_information($scorm->id);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_access_information_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_access_information_returns(), $result);
 
         // Check default values for capabilities.
         $enabledcaps = array('canskipview', 'cansavetrack', 'canviewscores');
@@ -910,7 +919,7 @@ class externallib_test extends externallib_advanced_testcase {
         accesslib_clear_all_caches_for_unit_testing();
 
         $result = mod_scorm_external::get_scorm_access_information($scorm->id);
-        $result = \external_api::clean_returnvalue(mod_scorm_external::get_scorm_access_information_returns(), $result);
+        $result = external_api::clean_returnvalue(mod_scorm_external::get_scorm_access_information_returns(), $result);
         unset($result['warnings']);
         foreach ($result as $capname => $capvalue) {
             if (in_array($capname, $enabledcaps)) {

@@ -23,7 +23,6 @@
     * name - form element name
     * options - list of options for units containing name, value, selected
     * value - yes
-    * readonly - bool
     * id - element id
 
     Example context (json):
@@ -31,7 +30,6 @@
         "name": "test",
         "value": "5",
         "id": "test0",
-        "readonly": false,
         "options": [ { "name": "Minutes", "value": "mins", "selected": true } ]
     }
 }}
@@ -40,9 +38,9 @@
 }}
 <div class="form-duration defaultsnext">
     <div class="form-inline">
-        <input type="text" size="5" id="{{id}}v" name="{{name}}[v]" value="{{value}}" class="form-control text-ltr" {{#readonly}}disabled{{/readonly}}>
+        <input type="text" size="5" id="{{id}}v" name="{{name}}[v]" value="{{value}}" class="form-control text-ltr">
         <label class="sr-only" for="{{id}}u">{{#str}}durationunits, admin{{/str}}</label>
-        <select id="{{id}}u" name="{{name}}[u]" class="form-control custom-select" {{#readonly}}disabled{{/readonly}}>
+        <select id="{{id}}u" name="{{name}}[u]" class="form-control custom-select">
             {{#options}}
                 <option value="{{value}}" {{#selected}}selected{{/selected}}>{{name}}</option>
             {{/options}}

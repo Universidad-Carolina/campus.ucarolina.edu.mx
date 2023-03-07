@@ -83,7 +83,6 @@ if (!user_can_view_profile($user, null, $context)) {
     $PAGE->set_title("$SITE->shortname: $struser");  // Do not leak the name.
     $PAGE->set_heading($struser);
     $PAGE->set_pagelayout('mypublic');
-    $PAGE->add_body_class('limitedwidth');
     $PAGE->set_url('/user/profile.php', array('id' => $userid));
     $PAGE->navbar->add($struser);
     echo $OUTPUT->header();
@@ -94,12 +93,11 @@ if (!user_can_view_profile($user, null, $context)) {
 
 // Get the profile page.  Should always return something unless the database is broken.
 if (!$currentpage = my_get_page($userid, MY_PAGE_PUBLIC)) {
-    throw new \moodle_exception('mymoodlesetup');
+    print_error('mymoodlesetup');
 }
 
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('mypublic');
-$PAGE->add_body_class('limitedwidth');
 $PAGE->set_pagetype('user-profile');
 
 // Set up block editing capabilities.
@@ -140,7 +138,7 @@ if ($PAGE->user_allowed_editing()) {
     if ($reset !== null) {
         if (!is_null($userid)) {
             if (!$currentpage = my_reset_page($userid, MY_PAGE_PUBLIC, 'user-profile')) {
-                throw new \moodle_exception('reseterror', 'my');
+                print_error('reseterror', 'my');
             }
             redirect(new moodle_url('/user/profile.php', array('id' => $userid)));
         }
@@ -157,7 +155,7 @@ if ($PAGE->user_allowed_editing()) {
             // For the page to display properly with the user context header the page blocks need to
             // be copied over to the user context.
             if (!$currentpage = my_copy_page($userid, MY_PAGE_PUBLIC, 'user-profile')) {
-                throw new \moodle_exception('mymoodlesetup');
+                print_error('mymoodlesetup');
             }
             $PAGE->set_context($usercontext);
             $PAGE->set_subpage($currentpage->id);
@@ -186,10 +184,7 @@ if ($PAGE->user_allowed_editing()) {
     }
 
     $url = new moodle_url("$CFG->wwwroot/user/profile.php", $params);
-    $button = '';
-    if (!$PAGE->theme->haseditswitch) {
-        $button = $OUTPUT->single_button($url, $editstring);
-    }
+    $button = $OUTPUT->single_button($url, $editstring);
     $PAGE->set_button($resetbutton . $button);
 
 } else {
@@ -203,10 +198,6 @@ profile_view($user, $usercontext);
 echo $OUTPUT->header();
 echo '<div class="userprofile">';
 
-$hiddenfields = [];
-if (!has_capability('moodle/user:viewhiddendetails', $usercontext)) {
-    $hiddenfields = array_flip(explode(',', $CFG->hiddenuserfields));
-}
 if ($user->description && !isset($hiddenfields['description'])) {
     echo '<div class="description">';
     if (!empty($CFG->profilesforenrolledusersonly) && !$currentuser &&

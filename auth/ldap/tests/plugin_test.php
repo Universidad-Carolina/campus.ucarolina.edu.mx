@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace auth_ldap;
-
 /**
  * LDAP authentication plugin tests.
  *
@@ -33,7 +31,10 @@ namespace auth_ldap;
  * @copyright  2013 Petr Skoda {@link http://skodak.org}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class plugin_test extends \advanced_testcase {
+
+defined('MOODLE_INTERNAL') || die();
+
+class auth_ldap_plugin_testcase extends advanced_testcase {
 
     /**
      * Data provider for auth_ldap tests
@@ -107,19 +108,16 @@ class plugin_test extends \advanced_testcase {
         $o['ou']          = 'users';
         ldap_add($connection, 'ou='.$o['ou'].','.$topdn, $o);
 
-        $createdusers = array();
         for ($i=1; $i<=5; $i++) {
             $this->create_ldap_user($connection, $topdn, $i);
-            $createdusers[] = 'username' . $i;
         }
 
         // Set up creators group.
-        $assignedroles = array('username1', 'username2');
         $o = array();
         $o['objectClass'] = array('posixGroup');
         $o['cn']          = 'creators';
         $o['gidNumber']   = 1;
-        $o['memberUid']   = $assignedroles;
+        $o['memberUid']   = array('username1', 'username2');
         ldap_add($connection, 'cn='.$o['cn'].','.$topdn, $o);
 
         $creatorrole = $DB->get_record('role', array('shortname'=>'coursecreator'));
@@ -163,7 +161,7 @@ class plugin_test extends \advanced_testcase {
         $this->assertEquals(2, $DB->count_records('user'));
         $this->assertEquals(0, $DB->count_records('role_assignments'));
 
-        /** @var \auth_plugin_ldap $auth */
+        /** @var auth_plugin_ldap $auth */
         $auth = get_auth_plugin('ldap');
 
         ob_start();
@@ -176,23 +174,15 @@ class plugin_test extends \advanced_testcase {
         // Check events, 5 users created with 2 users having roles.
         $this->assertCount(7, $events);
         foreach ($events as $index => $event) {
-            $username = $DB->get_field('user', 'username', array('id' => $event->relateduserid)); // Get username.
-
-            if ($event->eventname === '\core\event\user_created') {
-                $this->assertContains($username, $createdusers);
-                unset($events[$index]); // Remove matching event.
-
-            } else if ($event->eventname === '\core\event\role_assigned') {
-                $this->assertContains($username, $assignedroles);
-                unset($events[$index]); // Remove matching event.
-
-            } else {
-                $this->fail('Unexpected event found: ' . $event->eventname);
+            $usercreatedindex = array(0, 2, 4, 5, 6);
+            $roleassignedindex = array (1, 3);
+            if (in_array($index, $usercreatedindex)) {
+                $this->assertInstanceOf('\core\event\user_created', $event);
+            }
+            if (in_array($index, $roleassignedindex)) {
+                $this->assertInstanceOf('\core\event\role_assigned', $event);
             }
         }
-        // If all the user_created and role_assigned events have matched
-        // then the $events array should be now empty.
-        $this->assertCount(0, $events);
 
         $this->assertEquals(5, $DB->count_records('user', array('auth'=>'ldap')));
         $this->assertEquals(2, $DB->count_records('role_assignments'));
@@ -223,7 +213,7 @@ class plugin_test extends \advanced_testcase {
 
         set_config('removeuser', AUTH_REMOVEUSER_SUSPEND, 'auth_ldap');
 
-        /** @var \auth_plugin_ldap $auth */
+        /** @var auth_plugin_ldap $auth */
         $auth = get_auth_plugin('ldap');
 
         ob_start();
@@ -287,7 +277,7 @@ class plugin_test extends \advanced_testcase {
 
         set_config('removeuser', AUTH_REMOVEUSER_FULLDELETE, 'auth_ldap');
 
-        /** @var \auth_plugin_ldap $auth */
+        /** @var auth_plugin_ldap $auth */
         $auth = get_auth_plugin('ldap');
 
         $this->delete_ldap_user($connection, $topdn, 1);
@@ -356,7 +346,7 @@ class plugin_test extends \advanced_testcase {
 
         // Note: we are just going to trigger the function that calls the event,
         // not actually perform a LDAP login, for the sake of sanity.
-        $ldap = new \auth_plugin_ldap();
+        $ldap = new auth_plugin_ldap();
 
         // Set the key for the cache flag we want to set which is used by LDAP.
         set_cache_flag($ldap->pluginconfig . '/ntlmsess', sesskey(), $user->username, AUTH_NTLMTIMEOUT);
@@ -378,7 +368,7 @@ class plugin_test extends \advanced_testcase {
         $this->assertInstanceOf('\core\event\user_loggedin', $event);
         $this->assertEquals('user', $event->objecttable);
         $this->assertEquals('2', $event->objectid);
-        $this->assertEquals(\context_system::instance()->id, $event->contextid);
+        $this->assertEquals(context_system::instance()->id, $event->contextid);
         $expectedlog = array(SITEID, 'user', 'login', 'view.php?id=' . $USER->id . '&course=' . SITEID, $user->id,
             0, $user->id);
         $this->assertEventLegacyLogData($expectedlog, $event);
@@ -487,7 +477,7 @@ class plugin_test extends \advanced_testcase {
         $this->assertEquals(2, $DB->count_records('user'));
         $this->assertEquals(0, $DB->count_records('role_assignments'));
 
-        /** @var \auth_plugin_ldap $auth */
+        /** @var auth_plugin_ldap $auth */
         $auth = get_auth_plugin('ldap');
 
         $sink = $this->redirectEvents();
@@ -509,7 +499,7 @@ class plugin_test extends \advanced_testcase {
         $this->assertInstanceOf('\core\event\user_created', $event);
         $this->assertEquals($user['id'], $event->objectid);
         $this->assertEquals('user_created', $event->get_legacy_eventname());
-        $this->assertEquals(\context_user::instance($user['id']), $event->get_context());
+        $this->assertEquals(context_user::instance($user['id']), $event->get_context());
         $expectedlogdata = array(SITEID, 'user', 'add', '/view.php?id='.$event->objectid, fullname($dbuser));
         $this->assertEventLegacyLogData($expectedlogdata, $event);
 
@@ -542,7 +532,7 @@ class plugin_test extends \advanced_testcase {
     }
 
     protected function enable_plugin() {
-        $auths = get_enabled_auth_plugins();
+        $auths = get_enabled_auth_plugins(true);
         if (!in_array('ldap', $auths)) {
             $auths[] = 'ldap';
 

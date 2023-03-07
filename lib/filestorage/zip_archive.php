@@ -255,28 +255,6 @@ class zip_archive extends file_archive {
     }
 
     /**
-     * Extract the archive contents to the given location.
-     *
-     * @param string $destination Path to the location where to extract the files.
-     * @param int $index Index of the archive entry.
-     * @return bool true on success or false on failure
-     */
-    public function extract_to($destination, $index) {
-
-        if (!isset($this->za)) {
-            return false;
-        }
-
-        $name = $this->za->getNameIndex($index);
-
-        if ($name === false) {
-            return false;
-        }
-
-        return $this->za->extractTo($destination, $name);
-    }
-
-    /**
      * Returns file information.
      *
      * @param int $index index of file
@@ -292,9 +270,9 @@ class zip_archive extends file_archive {
             return false;
         }
 
-        // PHP 5.6 introduced encoding guessing logic for file names. To keep consistent behaviour with older versions,
-        // we fall back to obtaining file names as raw unmodified strings.
-        $result = $this->za->statIndex($index, ZipArchive::FL_ENC_RAW);
+        // PHP 5.6 introduced encoding guessing logic, we need to fall back
+        // to raw ZIP_FL_ENC_RAW (== 64) to get consistent results as in PHP 5.5.
+        $result = $this->za->statIndex($index, 64);
 
         if ($result === false) {
             return false;
@@ -364,7 +342,7 @@ class zip_archive extends file_archive {
      *
      * @return int number of files
      */
-    public function count(): int {
+    public function count() {
         if (!isset($this->za)) {
             return false;
         }
@@ -460,7 +438,7 @@ class zip_archive extends file_archive {
             $this->close();
             $res = $this->open($this->archivepathname, file_archive::OPEN, $this->encoding);
             if ($res !== true) {
-                throw new \moodle_exception('cannotopenzip');
+                print_error('cannotopenzip');
             }
         }
         $this->usedmem += strlen($contents);
@@ -509,7 +487,6 @@ class zip_archive extends file_archive {
      *
      * @return stdClass
      */
-    #[\ReturnTypeWillChange]
     public function current() {
         if (!isset($this->za)) {
             return false;
@@ -523,7 +500,6 @@ class zip_archive extends file_archive {
      *
      * @return int current file index
      */
-    #[\ReturnTypeWillChange]
     public function key() {
         return $this->pos;
     }
@@ -531,14 +507,14 @@ class zip_archive extends file_archive {
     /**
      * Moves forward to next file.
      */
-    public function next(): void {
+    public function next() {
         $this->pos++;
     }
 
     /**
      * Rewinds back to the first file.
      */
-    public function rewind(): void {
+    public function rewind() {
         $this->pos = 0;
     }
 
@@ -547,7 +523,7 @@ class zip_archive extends file_archive {
      *
      * @return bool
      */
-    public function valid(): bool {
+    public function valid() {
         if (!isset($this->za)) {
             return false;
         }

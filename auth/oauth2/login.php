@@ -27,9 +27,6 @@ require_once('../../config.php');
 $issuerid = required_param('id', PARAM_INT);
 $wantsurl = new moodle_url(optional_param('wantsurl', '', PARAM_URL));
 
-$PAGE->set_context(context_system::instance());
-$PAGE->set_url(new moodle_url('/auth/oauth2/login.php', ['id' => $issuerid]));
-
 require_sesskey();
 
 if (!\auth_oauth2\api::is_enabled()) {
@@ -37,9 +34,6 @@ if (!\auth_oauth2\api::is_enabled()) {
 }
 
 $issuer = new \core\oauth2\issuer($issuerid);
-if (!$issuer->is_available_for_login()) {
-    throw new \moodle_exception('issuernologin', 'auth_oauth2');
-}
 
 $returnparams = ['wantsurl' => $wantsurl, 'sesskey' => sesskey(), 'id' => $issuerid];
 $returnurl = new moodle_url('/auth/oauth2/login.php', $returnparams);

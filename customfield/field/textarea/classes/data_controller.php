@@ -96,7 +96,7 @@ class data_controller extends \core_customfield\data_controller {
             $this->save();
         }
 
-        if (array_key_exists('text', $fromform)) {
+        if ($fromform['text']) {
             $textoptions = $this->value_editor_options();
             $data = (object) ['field_editor' => $fromform];
             $data = file_postupdate_standard_editor($data, 'field', $textoptions, $textoptions['context'],
@@ -162,9 +162,6 @@ class data_controller extends \core_customfield\data_controller {
      * @return mixed|null value or null if empty
      */
     public function export_value() {
-        global $CFG;
-        require_once($CFG->libdir . '/filelib.php');
-
         $value = $this->get_value();
         if ($this->is_empty($value)) {
             return null;

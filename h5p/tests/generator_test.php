@@ -14,10 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core_h5p;
-
-use core_h5p\local\library\autoloader;
-
 /**
 * Test class covering the h5p data generator class.
 *
@@ -25,14 +21,29 @@ use core_h5p\local\library\autoloader;
 * @category   test
 * @copyright  2019 Mihail Geshoski <mihail@moodle.com>
 * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+*/
+
+namespace core_h5p;
+
+use core_h5p\local\library\autoloader;
+
+defined('MOODLE_INTERNAL') || die();
+
+/**
+* Generator testcase for the core_grading generator.
+*
+* @package    core_h5p
+* @category   test
+* @copyright  2019 Mihail Geshoski <mihail@moodle.com>
+* @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
 * @runTestsInSeparateProcesses
 */
-class generator_test extends \advanced_testcase {
+class generator_testcase extends \advanced_testcase {
 
     /**
      * Tests set up.
      */
-    protected function setUp(): void {
+    protected function setUp() {
         parent::setUp();
 
         autoloader::register();
@@ -154,7 +165,7 @@ class generator_test extends \advanced_testcase {
      * Test the behaviour of generate_h5p_data(). Test whether library files are created or not
      * on filesystem depending what the method defines.
      *
-     * @dataProvider generate_h5p_data_files_creation_provider
+     * @dataProvider test_generate_h5p_data_files_creation_provider
      * @param bool $createlibraryfiles Whether to create library files on the filesystem
      * @param bool $expected The expectation whether the files have been created or not
      **/
@@ -194,7 +205,7 @@ class generator_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function generate_h5p_data_files_creation_provider(): array {
+    public function test_generate_h5p_data_files_creation_provider(): array {
         return [
             'Do not create library related files on the filesystem' => [
                 false,
@@ -216,9 +227,7 @@ class generator_test extends \advanced_testcase {
 
         $generator = $this->getDataGenerator()->get_plugin_generator('core_h5p');
 
-        $data = $generator->create_library_record(
-            'Library', 'Lib', 1, 2, 3, 'Semantics example', '/regex11/', 'http://tutorial.org/', 'http://example.org/'
-        );
+        $data = $generator->create_library_record('Library', 'Lib', 1, 2, 3, 'Semantics example', '/regex11/');
         unset($data->id);
 
         $expected = (object) [
@@ -235,12 +244,8 @@ class generator_test extends \advanced_testcase {
             'droplibrarycss' => '',
             'semantics' => 'Semantics example',
             'addto' => '/regex11/',
-            'tutorial' => 'http://tutorial.org/',
-            'example' => 'http://example.org/',
             'coremajor' => null,
             'coreminor' => null,
-            'metadatasettings' => null,
-            'enabled' => 1,
         ];
 
         $this->assertEquals($expected, $data);
@@ -250,7 +255,7 @@ class generator_test extends \advanced_testcase {
      * Test the behaviour of create_h5p_record(). Test whather the h5p content data is
      * properly saved in the database.
      *
-     * @dataProvider create_h5p_record_provider
+     * @dataProvider test_create_h5p_record_provider
      * @param array $h5pdata The h5p content data
      * @param \stdClass $expected The expected saved data
      **/
@@ -276,7 +281,7 @@ class generator_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function create_h5p_record_provider(): array {
+    public function test_create_h5p_record_provider(): array {
         $createdjsoncontent = json_encode(
             array(
                 'text' => '<p>Created dummy text<\/p>\n',
@@ -373,7 +378,7 @@ class generator_test extends \advanced_testcase {
      * Test the behaviour of create_contents_libraries_record(). Test whether the contents libraries
      * are properly saved in the database.
      *
-     * @dataProvider create_contents_libraries_record_provider
+     * @dataProvider test_create_contents_libraries_record_provider
      * @param array $contentslibrariestdata The h5p contents libraries data.
      * @param \stdClass $expected The expected saved data.
      **/
@@ -397,7 +402,7 @@ class generator_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function create_contents_libraries_record_provider(): array {
+    public function test_create_contents_libraries_record_provider(): array {
         return [
             'Create h5p content library with set dependency type' => [
                 [
@@ -433,7 +438,7 @@ class generator_test extends \advanced_testcase {
      * Test the behaviour of create_library_dependency_record(). Test whether the contents libraries
      * are properly saved in the database.
      *
-     * @dataProvider create_library_dependency_record_provider
+     * @dataProvider test_create_library_dependency_record_provider
      * @param array $librarydependencydata The library dependency data.
      * @param \stdClass $expected The expected saved data.
      **/
@@ -457,7 +462,7 @@ class generator_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function create_library_dependency_record_provider(): array {
+    public function test_create_library_dependency_record_provider(): array {
         return [
             'Create h5p library dependency with set dependency type' => [
                 [
@@ -488,7 +493,7 @@ class generator_test extends \advanced_testcase {
     /**
      * Test the behaviour of create_content_file(). Test whether a file belonging to a content is created.
      *
-     * @dataProvider create_content_file_provider
+     * @dataProvider test_create_content_file_provider
      * @param array $filedata Data from the file to be created.
      * @param array $expecteddata Data expected.Data from the file to be created.
      */
@@ -523,7 +528,7 @@ class generator_test extends \advanced_testcase {
      *
      * @return array
      **/
-    public function create_content_file_provider(): array {
+    public function test_create_content_file_provider(): array {
         return [
             'Create file in content with id 4' => [
                 [

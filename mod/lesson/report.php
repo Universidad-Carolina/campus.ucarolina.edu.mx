@@ -48,14 +48,12 @@ if ($pageid !== null) {
     $url->param('pageid', $pageid);
 }
 $PAGE->set_url($url);
-if ($action == 'reportdetail') {
-    $PAGE->navbar->add(get_string('report', 'lesson'), $url);
+if ($action == 'reportoverview') {
+    $PAGE->navbar->add(get_string('reports', 'lesson'));
+    $PAGE->navbar->add(get_string('overview', 'lesson'));
 }
 
 $lessonoutput = $PAGE->get_renderer('mod_lesson');
-$PAGE->activityheader->set_description('');
-$reportactionmenu = new \mod_lesson\output\report_action_menu($id, $url);
-$reportactionarea = $lessonoutput->render($reportactionmenu);
 
 if ($action === 'delete') {
     /// Process any form data before fetching attempts, grades and times
@@ -120,9 +118,6 @@ if ($action === 'delete') {
 
     if ($table === false) {
         echo $lessonoutput->header($lesson, $cm, $action, false, null, get_string('nolessonattempts', 'lesson'));
-        if ($PAGE->has_secondary_navigation()) {
-            echo $reportactionarea;
-        }
         if (!empty($currentgroup)) {
             $groupname = groups_get_group_name($currentgroup);
             echo $OUTPUT->notification(get_string('nolessonattemptsgroup', 'lesson', $groupname));
@@ -135,9 +130,6 @@ if ($action === 'delete') {
     }
 
     echo $lessonoutput->header($lesson, $cm, $action, false, null, get_string('overview', 'lesson'));
-    if ($PAGE->has_secondary_navigation()) {
-        echo $reportactionarea;
-    }
     groups_print_activity_menu($cm, $url);
 
     $course_context = context_course::instance($course->id);
@@ -235,6 +227,7 @@ if ($action === 'delete') {
                                 get_string('highscore', 'lesson'), get_string('lowscore', 'lesson'),
                                 get_string('hightime', 'lesson'), get_string('lowtime', 'lesson'));
         $stattable->align = array('center', 'center', 'center', 'center', 'center', 'center');
+        $stattable->wrap = array('nowrap', 'nowrap', 'nowrap', 'nowrap', 'nowrap', 'nowrap');
         $stattable->attributes['class'] = 'standardtable generaltable';
         $stattable->data[] = array($data->avescore, $data->avetime, $data->highscore, $data->lowscore, $data->hightime, $data->lowtime);
 
@@ -245,6 +238,7 @@ if ($action === 'delete') {
         $stattable->head = array(get_string('averagetime', 'lesson'), get_string('hightime', 'lesson'),
                                 get_string('lowtime', 'lesson'));
         $stattable->align = array('center', 'center', 'center');
+        $stattable->wrap = array('nowrap', 'nowrap', 'nowrap');
         $stattable->attributes['class'] = 'standardtable generaltable';
         $stattable->data[] = array($data->avetime, $data->hightime, $data->lowtime);
     }
@@ -265,9 +259,6 @@ if ($action === 'delete') {
 
 **************************************************************************/
     echo $lessonoutput->header($lesson, $cm, $action, false, null, get_string('detailedstats', 'lesson'));
-    if ($PAGE->has_secondary_navigation()) {
-        echo $reportactionarea;
-    }
     groups_print_activity_menu($cm, $url);
 
     $course_context = context_course::instance($course->id);
@@ -302,7 +293,7 @@ if ($action === 'delete') {
 
         $table->head = array();
         $table->align = array('right', 'left');
-        $table->attributes['class'] = 'table table-striped';
+        $table->attributes['class'] = 'generaltable';
 
         if (empty($userstats->gradeinfo)) {
             $table->align = array("center");
@@ -328,7 +319,7 @@ if ($action === 'delete') {
     foreach ($answerpages as $page) {
         $table->align = array('left', 'left');
         $table->size = array('70%', null);
-        $table->attributes['class'] = 'table table-striped';
+        $table->attributes['class'] = 'generaltable';
         unset($table->data);
         if ($page->grayout) { // set the color of text
             $fontstart = html_writer::start_tag('span', array('class' => 'dimmed_text'));
@@ -363,10 +354,12 @@ if ($action === 'delete') {
         } else {
             $table->data[] = array(get_string('didnotanswerquestion', 'lesson'), " ");
         }
+        echo html_writer::start_tag('div', array('class' => 'no-overflow'));
         echo html_writer::table($table);
+        echo html_writer::end_tag('div');
     }
 } else {
-    throw new \moodle_exception('unknowaction');
+    print_error('unknowaction');
 }
 
 /// Finish the page

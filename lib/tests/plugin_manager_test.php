@@ -14,11 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core;
-
-use core_plugin_manager;
-use testable_core_plugin_manager;
-use testable_plugininfo_base;
+/**
+ * Unit tests for plugin manager class.
+ *
+ * @package   core
+ * @category  phpunit
+ * @copyright 2013 Petr Skoda {@link http://skodak.org}
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -27,16 +30,11 @@ require_once($CFG->dirroot.'/lib/tests/fixtures/testable_plugin_manager.php');
 require_once($CFG->dirroot.'/lib/tests/fixtures/testable_plugininfo_base.php');
 
 /**
- * Unit tests for plugin manager class.
- *
- * @package   core
- * @category  test
- * @copyright 2013 Petr Skoda {@link http://skodak.org}
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * Tests of the basic API of the plugin manager.
  */
-class plugin_manager_test extends \advanced_testcase {
+class core_plugin_manager_testcase extends advanced_testcase {
 
-    public function tearDown(): void {
+    public function tearDown() {
         // The caches of the testable singleton must be reset explicitly. It is
         // safer to kill the whole testable singleton at the end of every test.
         testable_core_plugin_manager::reset_caches();
@@ -83,7 +81,7 @@ class plugin_manager_test extends \advanced_testcase {
     public function test_get_plugin_types() {
         // Make sure there are no warnings or errors.
         $types = core_plugin_manager::instance()->get_plugin_types();
-        $this->assertIsArray($types);
+        $this->assertInternalType('array', $types);
         foreach ($types as $type => $fulldir) {
             $this->assertFileExists($fulldir);
         }
@@ -94,9 +92,8 @@ class plugin_manager_test extends \advanced_testcase {
         foreach ($types as $type => $fulldir) {
             $installed = core_plugin_manager::instance()->get_installed_plugins($type);
             foreach ($installed as $plugin => $version) {
-                $this->assertMatchesRegularExpression('/^[a-z]+[a-z0-9_]*$/', $plugin);
-                $this->assertTrue(is_numeric($version),
-                    'All plugins should have a version, plugin '.$type.'_'.$plugin.' does not have version info.');
+                $this->assertRegExp('/^[a-z]+[a-z0-9_]*$/', $plugin);
+                $this->assertTrue(is_numeric($version), 'All plugins should have a version, plugin '.$type.'_'.$plugin.' does not have version info.');
             }
         }
     }
@@ -107,7 +104,7 @@ class plugin_manager_test extends \advanced_testcase {
             $enabled = core_plugin_manager::instance()->get_enabled_plugins($type);
             if (is_array($enabled)) {
                 foreach ($enabled as $key => $val) {
-                    $this->assertMatchesRegularExpression('/^[a-z]+[a-z0-9_]*$/', $key);
+                    $this->assertRegExp('/^[a-z]+[a-z0-9_]*$/', $key);
                     $this->assertSame($key, $val);
                 }
             } else {
@@ -122,11 +119,9 @@ class plugin_manager_test extends \advanced_testcase {
             $present = core_plugin_manager::instance()->get_present_plugins($type);
             if (is_array($present)) {
                 foreach ($present as $plugin => $version) {
-                    $this->assertMatchesRegularExpression('/^[a-z]+[a-z0-9_]*$/', $plugin,
-                        'All plugins are supposed to have version.php file.');
-                    $this->assertIsObject($version);
-                    $this->assertTrue(is_numeric($version->version),
-                        'All plugins should have a version, plugin '.$type.'_'.$plugin.' does not have version info.');
+                    $this->assertRegExp('/^[a-z]+[a-z0-9_]*$/', $plugin, 'All plugins are supposed to have version.php file.');
+                    $this->assertInternalType('object', $version);
+                    $this->assertTrue(is_numeric($version->version), 'All plugins should have a version, plugin '.$type.'_'.$plugin.' does not have version info.');
                 }
             } else {
                 // No plugins of this type exist.
@@ -194,7 +189,7 @@ class plugin_manager_test extends \advanced_testcase {
     public function test_get_subplugins() {
         // Tested already indirectly from test_get_subplugins_of_plugin().
         $subplugins = core_plugin_manager::instance()->get_subplugins();
-        $this->assertIsArray($subplugins);
+        $this->assertInternalType('array', $subplugins);
     }
 
     public function test_get_parent_of_subplugin() {
@@ -256,8 +251,8 @@ class plugin_manager_test extends \advanced_testcase {
         $this->assertFileExists("$CFG->dirroot/mod/assign", 'assign module is not present');
         $this->assertFileExists("$CFG->dirroot/mod/forum", 'forum module is not present');
         $this->assertFileExists("$CFG->dirroot/$CFG->admin/tool/phpunit", 'phpunit tool is not present');
-        $this->assertFileDoesNotExist("$CFG->dirroot/mod/xxxxxxx");
-        $this->assertFileDoesNotExist("$CFG->dirroot/enrol/autorize");
+        $this->assertFileNotExists("$CFG->dirroot/mod/xxxxxxx");
+        $this->assertFileNotExists("$CFG->dirroot/enrol/autorize");
 
         // Ready for upgrade.
         $assignversion = get_config('mod_assign', 'version');
@@ -375,10 +370,11 @@ class plugin_manager_test extends \advanced_testcase {
 
     /**
      * The combination of ANY_VERSION + $exactmatch is illegal.
+     *
+     * @expectedException moodle_exception
      */
     public function test_get_remote_plugin_info_exception() {
         $pluginman = testable_core_plugin_manager::instance();
-        $this->expectException(\moodle_exception::class);
         $pluginman->get_remote_plugin_info('any_thing', ANY_VERSION, true);
     }
 

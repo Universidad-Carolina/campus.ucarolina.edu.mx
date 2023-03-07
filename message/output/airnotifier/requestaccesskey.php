@@ -59,8 +59,6 @@ if (strpos($CFG->airnotifierurl, message_airnotifier_manager::AIRNOTIFIER_PUBLIC
     }
 }
 
-echo $OUTPUT->header();
-
 $manager = new message_airnotifier_manager();
 $warnings = [];
 
@@ -109,5 +107,6 @@ foreach ($warnings as $warning) {
 
 $msg .= $OUTPUT->continue_button($returl);
 
+echo $OUTPUT->header();
 echo $OUTPUT->box($msg, 'generalbox ');
 echo $OUTPUT->footer();

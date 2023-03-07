@@ -25,15 +25,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-use core_question\statistics\questions\all_calculated_for_qubaid_condition;
-
-require_once($CFG->dirroot . '/mod/quiz/report/default.php');
-require_once($CFG->dirroot . '/mod/quiz/report/reportlib.php');
 require_once($CFG->dirroot . '/mod/quiz/report/statistics/statistics_form.php');
 require_once($CFG->dirroot . '/mod/quiz/report/statistics/statistics_table.php');
 require_once($CFG->dirroot . '/mod/quiz/report/statistics/statistics_question_table.php');
 require_once($CFG->dirroot . '/mod/quiz/report/statistics/statisticslib.php');
-
 /**
  * The quiz statistics report provides summary information about each question in
  * a quiz, compared to the whole quiz. It also provides a drill-down to more
@@ -207,7 +202,7 @@ class quiz_statistics_report extends quiz_default_report {
         } else if ($qid) {
             // Report on an individual sub-question indexed questionid.
             if (!$questionstats->has_subq($qid, $variantno)) {
-                throw new \moodle_exception('questiondoesnotexist', 'question');
+                print_error('questiondoesnotexist', 'question');
             }
 
             $this->output_individual_question_data($quiz, $questionstats->for_subq($qid, $variantno));
@@ -224,7 +219,7 @@ class quiz_statistics_report extends quiz_default_report {
         } else if ($slot) {
             // Report on an individual question indexed by position.
             if (!isset($questions[$slot])) {
-                throw new \moodle_exception('questiondoesnotexist', 'question');
+                print_error('questiondoesnotexist', 'question');
             }
 
             if ($variantno === null &&
@@ -819,7 +814,7 @@ class quiz_statistics_report extends quiz_default_report {
      *
      * @param $qubaids qubaid_condition
      */
-    public function clear_cached_data($qubaids) {
+    protected function clear_cached_data($qubaids) {
         global $DB;
         $DB->delete_records('quiz_statistics', array('hashcode' => $qubaids->get_hash_code()));
         $DB->delete_records('question_statistics', array('hashcode' => $qubaids->get_hash_code()));
@@ -835,30 +830,19 @@ class quiz_statistics_report extends quiz_default_report {
     public function load_and_initialise_questions_for_calculations($quiz) {
         // Load the questions.
         $questions = quiz_report_get_significant_questions($quiz);
-        $questiondata = [];
-        foreach ($questions as $qs => $question) {
-            if ($question->qtype === 'random') {
-                $question->id = 0;
-                $question->name = get_string('random', 'quiz');
-                $question->questiontext = get_string('random', 'quiz');
-                $question->parenttype = 'random';
-                $questiondata[$question->slot] = $question;
-            } else if ($question->qtype === 'missingtype') {
-                $question->id = is_numeric($question->id) ? (int) $question->id : 0;
-                $questiondata[$question->slot] = $question;
-                $question->name = get_string('deletedquestion', 'qtype_missingtype');
-                $question->questiontext = get_string('deletedquestiontext', 'qtype_missingtype');
-            } else {
-                $q = question_bank::load_question_data($question->id);
-                $q->maxmark = $question->maxmark;
-                $q->slot = $question->slot;
-                $q->number = $question->number;
-                $q->parenttype = null;
-                $questiondata[$question->slot] = $q;
-            }
+        $questionids = array();
+        foreach ($questions as $question) {
+            $questionids[] = $question->id;
         }
-
-        return $questiondata;
+        $fullquestions = question_load_questions($questionids);
+        foreach ($questions as $qno => $question) {
+            $q = $fullquestions[$question->id];
+            $q->maxmark = $question->maxmark;
+            $q->slot = $qno;
+            $q->number = $question->number;
+            $questions[$qno] = $q;
+        }
+        return $questions;
     }
 
     /**
@@ -921,22 +905,5 @@ class quiz_statistics_report extends quiz_default_report {
                 }
             }
         }
-    }
-
-    /**
-     * Load question stats for a quiz
-     *
-     * @param int $quizid question usage
-     * @return all_calculated_for_qubaid_condition question stats
-     */
-    public function calculate_questions_stats_for_question_bank(int $quizid): all_calculated_for_qubaid_condition {
-        global $DB;
-        $quiz = $DB->get_record('quiz', ['id' => $quizid], '*', MUST_EXIST);
-        $questions = $this->load_and_initialise_questions_for_calculations($quiz);
-
-        [, $questionstats] = $this->get_all_stats_and_analysis($quiz,
-            $quiz->grademethod, question_attempt::ALL_TRIES, new \core\dml\sql_join(), $questions);
-
-        return $questionstats;
     }
 }

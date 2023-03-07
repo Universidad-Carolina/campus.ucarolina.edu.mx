@@ -102,13 +102,8 @@ class course_handler extends \core_customfield\handler {
                     has_capability('moodle/course:changelockedcustomfields', $context));
         } else {
             $context = $this->get_parent_context();
-            if ($context->contextlevel == CONTEXT_SYSTEM) {
-                return (!$field->get_configdata_property('locked') ||
-                    has_capability('moodle/course:changelockedcustomfields', $context));
-            } else {
-                return (!$field->get_configdata_property('locked') ||
-                    guess_if_creator_will_have_course_capability('moodle/course:changelockedcustomfields', $context));
-            }
+            return (!$field->get_configdata_property('locked') ||
+                guess_if_creator_will_have_course_capability('moodle/course:changelockedcustomfields', $context));
         }
     }
 
@@ -237,5 +232,21 @@ class course_handler extends \core_customfield\handler {
                 return;
             }
         }
+    }
+
+    /**
+     * Set up page customfield/edit.php
+     *
+     * @param field_controller $field
+     * @return string page heading
+     */
+    public function setup_edit_page(field_controller $field) : string {
+        global $CFG, $PAGE;
+        require_once($CFG->libdir.'/adminlib.php');
+
+        $title = parent::setup_edit_page($field);
+        admin_externalpage_setup('course_customfield');
+        $PAGE->navbar->add($title);
+        return $title;
     }
 }

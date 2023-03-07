@@ -380,7 +380,7 @@ class qtype_calculated extends question_type {
                 require("{$CFG->dirroot}/question/type/calculated/datasetitems.php");
                 break;
             default:
-                throw new \moodle_exception('invalidwizardpage', 'question');
+                print_error('invalidwizardpage', 'question');
                 break;
         }
     }
@@ -412,7 +412,7 @@ class qtype_calculated extends question_type {
                         "{$submiturl}?wizardnow=datasetitems", $question, $regenerate);
                 break;
             default:
-                throw new \moodle_exception('invalidwizardpage', 'question');
+                print_error('invalidwizardpage', 'question');
                 break;
         }
 
@@ -640,13 +640,23 @@ class qtype_calculated extends question_type {
                     if (isset($form->synchronize) && $form->synchronize == 2) {
                         $this->addnamecategory($question);
                     }
-                } else {
+                } else if (!empty($form->makecopy)) {
                     $questionfromid =  $form->id;
                     $question = parent::save_question($question, $form);
                     // Prepare the datasets.
                     $this->preparedatasets($form, $questionfromid);
                     $form->id = $question->id;
                     $this->save_as_new_dataset_definitions($form, $questionfromid);
+                    if (isset($form->synchronize) && $form->synchronize == 2) {
+                        $this->addnamecategory($question);
+                    }
+                } else {
+                    // Editing a question.
+                    $question = parent::save_question($question, $form);
+                    // Prepare the datasets.
+                    $this->preparedatasets($form, $question->id);
+                    $form->id = $question->id;
+                    $this->save_dataset_definitions($form);
                     if (isset($form->synchronize) && $form->synchronize == 2) {
                         $this->addnamecategory($question);
                     }
@@ -675,7 +685,7 @@ class qtype_calculated extends question_type {
                 $this->save_question_calculated($question, $form);
                 break;
             default:
-                throw new \moodle_exception('invalidwizardpage', 'question');
+                print_error('invalidwizardpage', 'question');
                 break;
         }
         return $question;
@@ -1032,7 +1042,7 @@ class qtype_calculated extends question_type {
             return sprintf("%.".$regs[4].'f', $nbr);
 
         } else {
-            throw new \moodle_exception('disterror', 'question', '', $regs[1]);
+            print_error('disterror', 'question', '', $regs[1]);
         }
         return '';
     }
@@ -1466,7 +1476,7 @@ class qtype_calculated extends question_type {
             $a = new stdClass();
             $a->id = $question->id;
             $a->item = $datasetitem;
-            throw new \moodle_exception('cannotgetdsfordependent', 'question', '', $a);
+            print_error('cannotgetdsfordependent', 'question', '', $a);
         }
         $dataset = Array();
         foreach ($dataitems as $id => $dataitem) {
@@ -1749,10 +1759,13 @@ class qtype_calculated extends question_type {
                     $line++;
                     $text .= "<td align=\"left\" style=\"white-space:nowrap;\">{$questionname}</td>";
                     // TODO MDL-43779 should not have quiz-specific code here.
-                    $sql = 'SELECT COUNT(*) FROM (' . qbank_usage\helper::get_question_bank_usage_sql() . ') questioncount';
-                    $nbofquiz = $DB->count_records_sql($sql, [$qu->id, 'mod_quiz', 'slot']);
-                    $sql = 'SELECT COUNT(*) FROM (' . qbank_usage\helper::get_question_attempt_usage_sql() . ') attemptcount';
-                    $nbofattempts = $DB->count_records_sql($sql, [$qu->id]);
+                    $nbofquiz = $DB->count_records('quiz_slots', array('questionid' => $qu->id));
+                    $nbofattempts = $DB->count_records_sql("
+                            SELECT count(1)
+                              FROM {quiz_slots} slot
+                              JOIN {quiz_attempts} quiza ON quiza.quiz = slot.quizid
+                             WHERE slot.questionid = ?
+                               AND quiza.preview = 0", array($qu->id));
                     if ($nbofquiz > 0) {
                         $text .= "<td align=\"center\">{$nbofquiz}</td>";
                         $text .= "<td align=\"center\">{$nbofattempts}";
@@ -1843,9 +1856,6 @@ function qtype_calculated_calculate_answer($formula, $individualdata,
     if (!is_numeric($answer)) {
         // Something went wrong, so just return NaN.
         $calculated->answer = NAN;
-        return $calculated;
-    } else if (is_nan($answer) || is_infinite($answer)) {
-        $calculated->answer = $answer;
         return $calculated;
     }
     if ('1' == $answerformat) { // Answer is to have $answerlength decimals.

@@ -27,8 +27,6 @@ use renderable;
 use templatable;
 use renderer_base;
 use stdClass;
-use core_collator;
-use core_component;
 use core_plugin_manager;
 use tool_templatelibrary\api;
 
@@ -40,71 +38,35 @@ use tool_templatelibrary\api;
  */
 class list_templates_page implements renderable, templatable {
 
-    /** @var string $component The currently selected component */
-    protected $component;
-    /** @var string $search The current search */
-    protected $search;
-
-    /**
-     * Template page constructor
-     *
-     * @param string $component
-     * @param string $search
-     */
-    public function __construct(string $component = '', string $search = '') {
-        $this->component = $component;
-        $this->search = $search;
-    }
-
     /**
      * Export this data so it can be used as the context for a mustache template.
      *
      * @return stdClass
      */
     public function export_for_template(renderer_base $output) {
+        $data = new stdClass();
+        $data->allcomponents = array();
         $fulltemplatenames = api::list_templates();
         $pluginmanager = core_plugin_manager::instance();
-        $components = [];
+        $components = array();
 
         foreach ($fulltemplatenames as $templatename) {
-            [$component, ] = explode('/', $templatename, 2);
-            [$type, ] = core_component::normalize_component($component);
-
-            // Core sub-systems are grouped together and are denoted by a distinct lang string.
-            $coresubsystem = (strpos($component, 'core') === 0);
-
-            if (!array_key_exists($type, $components)) {
-                $typename = $coresubsystem
-                    ? get_string('core', 'tool_templatelibrary')
-                    : $pluginmanager->plugintype_name_plural($type);
-
-                $components[$type] = (object) [
-                    'type' => $typename,
-                    'plugins' => [],
-                ];
-            }
-
-            $pluginname = $coresubsystem
-                ? get_string('coresubsystem', 'tool_templatelibrary', $component)
-                : $pluginmanager->plugin_name($component);
-
-            $components[$type]->plugins[$component] = (object) [
-                'name' => $pluginname,
-                'component' => $component,
-                'selected' => ($component === $this->component),
-            ];
+            list($component, $templatename) = explode('/', $templatename, 2);
+            $components[$component] = 1;
         }
 
-        // Sort returned components according to their type, followed by name.
-        core_collator::asort_objects_by_property($components, 'type');
-        array_walk($components, function(stdClass $component) {
-            core_collator::asort_objects_by_property($component->plugins, 'name');
-            $component->plugins = array_values($component->plugins);
-        });
+        $components = array_keys($components);
+        foreach ($components as $component) {
+            $info = new stdClass();
+            $info->component = $component;
+            if (strpos($component, 'core') === 0) {
+                $info->name = get_string('coresubsystem', 'tool_templatelibrary', $component);
+            } else {
+                $info->name = $pluginmanager->plugin_name($component);
+            }
+            $data->allcomponents[] = $info;
+        }
 
-        return (object) [
-            'allcomponents' => array_values($components),
-            'search' => $this->search,
-        ];
+        return $data;
     }
 }

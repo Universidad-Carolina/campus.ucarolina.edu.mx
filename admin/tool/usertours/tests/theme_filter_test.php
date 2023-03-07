@@ -14,7 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace tool_usertours;
+/**
+ * Tests for theme filter.
+ *
+ * @package    tool_usertours
+ * @copyright  2016 Andrew Nicols <andrew@nicols.co.uk>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * Tests for theme filter.
@@ -23,7 +31,7 @@ namespace tool_usertours;
  * @copyright  2016 Andrew Nicols <andrew@nicols.co.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class theme_filter_test extends \advanced_testcase {
+class tool_usertours_theme_filter_testcase extends advanced_testcase {
 
     /**
      * Data Provider for filter_matches function.

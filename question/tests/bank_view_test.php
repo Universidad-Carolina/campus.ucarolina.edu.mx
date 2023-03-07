@@ -14,16 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core_question;
-
-use core_question\local\bank\question_edit_contexts;
-use core_question\local\bank\view;
-
-defined('MOODLE_INTERNAL') || die();
-
-global $CFG;
-require_once($CFG->dirroot . '/question/editlib.php');
-
 /**
  * Unit tests for the question bank view class.
  *
@@ -32,7 +22,20 @@ require_once($CFG->dirroot . '/question/editlib.php');
  * @copyright  2018 the Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class bank_view_test extends \advanced_testcase {
+
+defined('MOODLE_INTERNAL') || die();
+
+global $CFG;
+require_once($CFG->dirroot . '/question/editlib.php');
+
+
+/**
+ * Unit tests for the question bank view class.
+ *
+ * @copyright  2018 the Open University
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class core_question_bank_view_testcase extends advanced_testcase {
 
     public function test_viewing_question_bank_should_not_load_individual_questions() {
         $this->resetAfterTest();
@@ -43,7 +46,7 @@ class bank_view_test extends \advanced_testcase {
 
         // Create a course.
         $course = $generator->create_course();
-        $context = \context_course::instance($course->id);
+        $context = context_course::instance($course->id);
 
         // Create a question in the default category.
         $contexts = new question_edit_contexts($context);
@@ -52,26 +55,17 @@ class bank_view_test extends \advanced_testcase {
                 ['name' => 'Example question', 'category' => $cat->id]);
 
         // Ensure the question is not in the cache.
-        $cache = \cache::make('core', 'questiondata');
+        $cache = cache::make('core', 'questiondata');
         $cache->delete($questiondata->id);
 
         // Generate the view.
-        $view = new view($contexts, new \moodle_url('/'), $course);
+        $view = new core_question\bank\view($contexts, new moodle_url('/'), $course);
         ob_start();
-        $pagevars = [
-            'qpage' => 0,
-            'qperpage' => DEFAULT_QUESTIONS_PER_PAGE,
-            'cat' => $cat->id . ',' . $context->id,
-            'recurse' => false,
-            'showhidden' => false,
-            'qbshowtext' => false
-
-        ];
-        $view->display($pagevars, 'editq');
+        $view->display('editq', 0, 20, $cat->id . ',' . $context->id, false, false, false);
         $html = ob_get_clean();
 
         // Verify the output includes the expected question.
-        $this->assertStringContainsString('Example question', $html);
+        $this->assertContains('Example question', $html);
 
         // Verify the question has not been loaded into the cache.
         $this->assertFalse($cache->has($questiondata->id));
@@ -87,7 +81,7 @@ class bank_view_test extends \advanced_testcase {
 
         // Create a course.
         $course = $generator->create_course();
-        $context = \context_course::instance($course->id);
+        $context = context_course::instance($course->id);
 
         // Create a question in the default category.
         $contexts = new question_edit_contexts($context);
@@ -97,23 +91,14 @@ class bank_view_test extends \advanced_testcase {
         $DB->set_field('question', 'qtype', 'unknownqtype', ['id' => $questiondata->id]);
 
         // Generate the view.
-        $view = new view($contexts, new \moodle_url('/'), $course);
+        $view = new core_question\bank\view($contexts, new moodle_url('/'), $course);
         ob_start();
-        $pagevars = [
-            'qpage' => 0,
-            'qperpage' => DEFAULT_QUESTIONS_PER_PAGE,
-            'cat' => $cat->id . ',' . $context->id,
-            'recurse' => false,
-            'showhidden' => false,
-            'qbshowtext' => false
-
-        ];
-        $view->display($pagevars, 'editq');
+        $view->display('editq', 0, 20, $cat->id . ',' . $context->id, false, false, false);
         $html = ob_get_clean();
 
         // Mainly we are verifying that there was no fatal error.
 
         // Verify the output includes the expected question.
-        $this->assertStringContainsString('Example question', $html);
+        $this->assertContains('Example question', $html);
     }
 }

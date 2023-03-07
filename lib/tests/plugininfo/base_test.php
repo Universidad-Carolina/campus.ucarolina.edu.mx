@@ -14,13 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-declare(strict_types = 1);
-
-namespace core\plugininfo;
-
-use testable_core_plugin_manager;
-use testable_plugininfo_base;
-
 /**
  * Unit tests for plugin base class.
  *
@@ -28,7 +21,21 @@ use testable_plugininfo_base;
  * @copyright 2019 Andrew Nicols
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class base_test extends \advanced_testcase {
+
+declare(strict_types = 1);
+namespace core\plugininfo;
+
+defined('MOODLE_INTERNAL') || die();
+
+use core_plugin_manager;
+use testable_core_plugin_manager;
+use testable_plugininfo_base;
+
+
+/**
+ * Tests of the basic API of the plugin manager.
+ */
+class base_testcase extends \advanced_testcase {
 
     /**
      * Setup to ensure that fixtures are loaded.
@@ -43,7 +50,7 @@ class base_test extends \advanced_testcase {
     /**
      * Tear down the testable plugin manager singleton between tests.
      */
-    public function tearDown(): void {
+    public function tearDown() {
         // The caches of the testable singleton must be reset explicitly. It is
         // safer to kill the whole testable singleton at the end of every test.
         testable_core_plugin_manager::reset_caches();
@@ -165,7 +172,7 @@ class base_test extends \advanced_testcase {
      * Test the load_disk_version function to check that it handles a range of correct supported and incompatible field
      * definitions.
      *
-     * @dataProvider load_disk_version_branch_supports_provider
+     * @dataProvider test_load_disk_version_branch_supports_provider
      * @param array|null $supported Supported versions to inject
      * @param string|int|null $incompatible Incompatible version to inject.
      * @param int $version Version to test
@@ -197,7 +204,7 @@ class base_test extends \advanced_testcase {
      *
      * @return array
      */
-    public function load_disk_version_branch_supports_provider(): array {
+    public function test_load_disk_version_branch_supports_provider(): array {
         return [
             'Range, branch in support, lowest' => [
                 'supported' => [29, 31],

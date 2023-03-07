@@ -8,14 +8,14 @@ $PAGE->set_context(context_system::instance());
 // Define variables used in page
 $site = get_site();
 
-$authsequence = get_enabled_auth_plugins(); // Auths, in sequence.
+$authsequence = get_enabled_auth_plugins(true); // auths, in sequence
 if (!in_array('ldap', $authsequence, true)) {
-    throw new \moodle_exception('ldap_isdisabled', 'auth');
+    print_error('ldap_isdisabled', 'auth');
 }
 
 $authplugin = get_auth_plugin('ldap');
 if (empty($authplugin->config->ntlmsso_enabled)) {
-    throw new \moodle_exception('ntlmsso_isdisabled', 'auth_ldap');
+    print_error('ntlmsso_isdisabled', 'auth_ldap');
 }
 
 // If ntlmsso_finish() succeeds, then the code never returns,

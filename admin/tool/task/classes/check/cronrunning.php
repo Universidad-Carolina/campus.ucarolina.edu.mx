@@ -71,8 +71,7 @@ class cronrunning extends check {
         $formatexpected = format_time($expectedfrequency);
         $formatinterval = format_time($lastcroninterval);
 
-        // Inform user the time since last cron start.
-        $details = get_string('lastcronstart', 'tool_task', $formatdelta);
+        $details = format_time($delta);
 
         if ($delta > $expectedfrequency + MINSECS) {
             $status = result::WARNING;
@@ -109,8 +108,7 @@ class cronrunning extends check {
             return new result($status, $summary, $details);
         }
 
-        // Add MINSECS to avoid spurious warning if cron is only a few seconds overdue.
-        if ($lastcroninterval > $expectedfrequency + MINSECS) {
+        if ($lastcroninterval > $expectedfrequency) {
             $status = result::WARNING;
             $summary = get_string('croninfrequent', 'admin', [
                 'actual'   => $formatinterval,

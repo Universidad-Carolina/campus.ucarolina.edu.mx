@@ -16,6 +16,7 @@
 /**
  * Manage the timeline view navigation for the timeline block.
  *
+ * @package    block_timeline
  * @copyright  2018 Ryan Wyllie <ryan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,16 +27,14 @@ define(
     'core/custom_interaction_events',
     'block_timeline/view',
     'core/ajax',
-    'core/notification',
-    'core/utils'
+    'core/notification'
 ],
 function(
     $,
     CustomEvents,
     View,
     Ajax,
-    Notification,
-    Utils
+    Notification
 ) {
 
     var SELECTORS = {
@@ -44,9 +43,6 @@ function(
         TIMELINE_VIEW_SELECTOR: '[data-region="view-selector"]',
         DATA_DAYS_OFFSET: '[data-days-offset]',
         DATA_DAYS_LIMIT: '[data-days-limit]',
-        TIMELINE_SEARCH_INPUT: '[data-action="search"]',
-        TIMELINE_SEARCH_CLEAR_ICON: '[data-action="clearsearch"]',
-        NO_COURSES_EMPTY_MESSAGE: '[data-region="no-courses-empty-message"]',
     };
 
     /**
@@ -93,7 +89,7 @@ function(
 
                 var option = $(e.target).closest(SELECTORS.TIMELINE_DAY_FILTER_OPTION);
 
-                if (option.attr('aria-current') == 'true') {
+                if (option.hasClass('active')) {
                     // If it's already active then we don't need to do anything.
                     return;
                 }
@@ -108,12 +104,6 @@ function(
                     elementsWithDaysOffset.attr('data-days-limit', daysLimit);
                 } else {
                     elementsWithDaysOffset.removeAttr('data-days-limit');
-                }
-
-                if (option.attr('data-filtername') === 'overdue') {
-                    elementsWithDaysOffset.attr('data-filter-overdue', true);
-                } else {
-                    elementsWithDaysOffset.removeAttr('data-filter-overdue');
                 }
 
                 // Reset the views to reinitialise the event lists now that we've
@@ -140,11 +130,9 @@ function(
 
         // Listen for when the user changes tab so that we can show the first set of courses
         // and load their events when they request the sort by courses view for the first time.
-        viewSelector.on('shown shown.bs.tab', function(e) {
+        viewSelector.on('shown shown.bs.tab', function() {
             View.shown(timelineViewRoot);
-            $(e.target).removeClass('active');
         });
-
 
         // Event selector for user_sort
         CustomEvents.define(viewSelector, [CustomEvents.events.activate]);
@@ -156,52 +144,6 @@ function(
     };
 
     /**
-     * Event listener for the "search" input field in the timeline navigation that allows for
-     * searching the activity name, course name and activity type.
-     *
-     * @param {object} root The root element for the timeline block
-     * @param {object} timelineViewRoot The root element for the timeline view
-     */
-    const registerSearch = (root, timelineViewRoot) => {
-        const searchInput = root.find(SELECTORS.TIMELINE_SEARCH_INPUT);
-        const clearSearchIcon = root.find(SELECTORS.TIMELINE_SEARCH_CLEAR_ICON);
-        searchInput.on('input', Utils.debounce(() => {
-            if (searchInput.val() !== '') {
-                activeSearchState(clearSearchIcon, timelineViewRoot);
-            } else {
-                clearSearchState(clearSearchIcon, timelineViewRoot);
-            }
-        }, 1000));
-        clearSearchIcon.on('click', () => {
-            searchInput.val('');
-            clearSearchState(clearSearchIcon, timelineViewRoot);
-            searchInput.focus();
-        });
-    };
-
-    /**
-     * Show the clear search icon.
-     *
-     * @param {object} clearSearchIcon Clear search icon element.
-     * @param {object} timelineViewRoot The root element for the timeline view
-     */
-    const activeSearchState = (clearSearchIcon, timelineViewRoot) => {
-        clearSearchIcon.removeClass('d-none');
-        View.reset(timelineViewRoot);
-    };
-
-    /**
-     * Hide the clear search icon.
-     *
-     * @param {object} clearSearchIcon Clear search icon element.
-     * @param {object} timelineViewRoot The root element for the timeline view
-     */
-    const clearSearchState = (clearSearchIcon, timelineViewRoot) => {
-        clearSearchIcon.addClass('d-none');
-        View.reset(timelineViewRoot);
-    };
-
-    /**
      * Initialise the timeline view navigation by adding event listeners to
      * the navigation elements.
      *
@@ -210,14 +152,8 @@ function(
      */
     var init = function(root, timelineViewRoot) {
         root = $(root);
-
+        registerTimelineDaySelector(root, timelineViewRoot);
         registerViewSelector(root, timelineViewRoot);
-
-        // Only need to handle filtering if the user is actively enrolled in a course.
-        if (!root.find(SELECTORS.NO_COURSES_EMPTY_MESSAGE).length) {
-            registerTimelineDaySelector(root, timelineViewRoot);
-            registerSearch(root, timelineViewRoot);
-        }
     };
 
     return {

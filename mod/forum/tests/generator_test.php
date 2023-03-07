@@ -14,7 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_forum;
+/**
+ * PHPUnit data generator tests
+ *
+ * @package    mod_forum
+ * @category   phpunit
+ * @copyright  2012 Petr Skoda {@link http://skodak.org}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
 
 /**
  * PHPUnit data generator testcase
@@ -24,15 +34,15 @@ namespace mod_forum;
  * @copyright  2012 Petr Skoda {@link http://skodak.org}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class generator_test extends \advanced_testcase {
+class mod_forum_generator_testcase extends advanced_testcase {
 
-    public function setUp(): void {
+    public function setUp() {
         // We must clear the subscription caches. This has to be done both before each test, and after in case of other
         // tests using these functions.
         \mod_forum\subscriptions::reset_forum_cache();
     }
 
-    public function tearDown(): void {
+    public function tearDown() {
         // We must clear the subscription caches. This has to be done both before each test, and after in case of other
         // tests using these functions.
         \mod_forum\subscriptions::reset_forum_cache();
@@ -62,7 +72,7 @@ class generator_test extends \advanced_testcase {
         $this->assertEquals('forum', $cm->modname);
         $this->assertEquals($course->id, $cm->course);
 
-        $context = \context_module::instance($cm->id);
+        $context = context_module::instance($cm->id);
         $this->assertEquals($forum->cmid, $context->instanceid);
 
         // test gradebook integration using low level DB access - DO NOT USE IN PLUGIN CODE!
@@ -89,7 +99,7 @@ class generator_test extends \advanced_testcase {
         $course = self::getDataGenerator()->create_course();
 
         // The forum.
-        $record = new \stdClass();
+        $record = new stdClass();
         $record->course = $course->id;
         $forum = self::getDataGenerator()->create_module('forum', $record);
 
@@ -111,7 +121,7 @@ class generator_test extends \advanced_testcase {
         $record['tags'] = array('Cats', 'mice');
         $record = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_discussion($record);
         $this->assertEquals(array('Cats', 'mice'),
-            array_values(\core_tag_tag::get_item_tags_array('mod_forum', 'forum_posts', $record->firstpost)));
+            array_values(core_tag_tag::get_item_tags_array('mod_forum', 'forum_posts', $record->firstpost)));
     }
 
     /**
@@ -132,7 +142,7 @@ class generator_test extends \advanced_testcase {
         $course = self::getDataGenerator()->create_course();
 
         // The forum.
-        $record = new \stdClass();
+        $record = new stdClass();
         $record->course = $course->id;
         $forum = self::getDataGenerator()->create_module('forum', $record);
 
@@ -142,7 +152,7 @@ class generator_test extends \advanced_testcase {
         $discussion = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_discussion($record);
 
         // Add a bunch of replies, changing the userid.
-        $record = new \stdClass();
+        $record = new stdClass();
         $record->discussion = $discussion->id;
         $record->userid = $user2->id;
         self::getDataGenerator()->get_plugin_generator('mod_forum')->create_post($record);
@@ -159,7 +169,7 @@ class generator_test extends \advanced_testcase {
         $record->tags = array('Cats', 'mice');
         $record = self::getDataGenerator()->get_plugin_generator('mod_forum')->create_post($record);
         $this->assertEquals(array('Cats', 'mice'),
-            array_values(\core_tag_tag::get_item_tags_array('mod_forum', 'forum_posts', $record->id)));
+            array_values(core_tag_tag::get_item_tags_array('mod_forum', 'forum_posts', $record->id)));
     }
 
     public function test_create_content() {
@@ -202,6 +212,6 @@ class generator_test extends \advanced_testcase {
         $this->assertEquals($post2->id, $postrecords[$post4->id]->parent);
 
         $this->assertEquals(array('Cats', 'mice'),
-            array_values(\core_tag_tag::get_item_tags_array('mod_forum', 'forum_posts', $post5->id)));
+            array_values(core_tag_tag::get_item_tags_array('mod_forum', 'forum_posts', $post5->id)));
     }
 }

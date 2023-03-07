@@ -232,8 +232,7 @@ abstract class info {
      * @return bool True if activity is available for all
      */
     public function is_available_for_all() {
-        global $CFG;
-        if (is_null($this->availability) || empty($CFG->enableavailability)) {
+        if (is_null($this->availability)) {
             return true;
         } else {
             try {
@@ -291,9 +290,9 @@ abstract class info {
      */
     protected function warn_about_invalid_availability(\coding_exception $e) {
         $name = $this->get_thing_name();
-        $htmlname = $this->format_info($name, $this->course);
-        // Because we call format_info here, likely in the middle of building dynamic data for the
-        // activity, there could be a chance that the name might not be available.
+        // If it occurs while building modinfo based on somebody calling $cm->name,
+        // we can't get $cm->name, and this line will cause a warning.
+        $htmlname = @$this->format_info($name, $this->course);
         if ($htmlname === '') {
             // So instead use the numbers (cmid) from the tag.
             $htmlname = preg_replace('~[^0-9]~', '', $name);
@@ -719,14 +718,14 @@ abstract class info {
      * @return string Correctly formatted info string
      */
     public static function format_info($inforenderable, $courseorid) {
-        global $PAGE, $OUTPUT;
+        global $PAGE;
 
         // Use renderer if required.
         if (is_string($inforenderable)) {
             $info = $inforenderable;
         } else {
-            $renderable = new \core_availability\output\availability_info($inforenderable);
-            $info = $OUTPUT->render($renderable);
+            $renderer = $PAGE->get_renderer('core', 'availability');
+            $info = $renderer->render($inforenderable);
         }
 
         // Don't waste time if there are no special tags.
@@ -740,32 +739,12 @@ abstract class info {
         $info = preg_replace_callback('~<AVAILABILITY_CMNAME_([0-9]+)/>~',
                 function($matches) use($modinfo, $context) {
                     $cm = $modinfo->get_cm($matches[1]);
-                    if ($cm->has_view() and $cm->get_user_visible()) {
+                    if ($cm->has_view() and $cm->uservisible) {
                         // Help student by providing a link to the module which is preventing availability.
-                        return \html_writer::link($cm->get_url(), format_string($cm->get_name(), true, ['context' => $context]));
+                        return \html_writer::link($cm->url, format_string($cm->name, true, array('context' => $context)));
                     } else {
-                        return format_string($cm->get_name(), true, ['context' => $context]);
+                        return format_string($cm->name, true, array('context' => $context));
                     }
-                }, $info);
-        $info = preg_replace_callback('~<AVAILABILITY_FORMAT_STRING>(.*?)</AVAILABILITY_FORMAT_STRING>~s',
-                function($matches) use ($context) {
-                    $decoded = htmlspecialchars_decode($matches[1], ENT_NOQUOTES);
-                    return format_string($decoded, true, ['context' => $context]);
-                }, $info);
-        $info = preg_replace_callback('~<AVAILABILITY_CALLBACK type="([a-z0-9_]+)">(.*?)</AVAILABILITY_CALLBACK>~s',
-                function($matches) use ($modinfo, $context) {
-                    // Find the class, it must have already been loaded by now.
-                    $fullclassname = 'availability_' . $matches[1] . '\condition';
-                    if (!class_exists($fullclassname, false)) {
-                        return '<!-- Error finding class ' . $fullclassname .' -->';
-                    }
-                    // Load the parameters.
-                    $params = [];
-                    $encodedparams = preg_split('~<P/>~', $matches[2], 0);
-                    foreach ($encodedparams as $encodedparam) {
-                        $params[] = htmlspecialchars_decode($encodedparam, ENT_NOQUOTES);
-                    }
-                    return $fullclassname::get_description_callback_value($modinfo, $context, $params);
                 }, $info);
 
         return $info;

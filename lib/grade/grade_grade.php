@@ -252,10 +252,6 @@ class grade_grade extends grade_object {
             $this->grade_item = grade_item::fetch(array('id'=>$this->itemid));
         }
 
-        if (empty($this->grade_item)) {
-            debugging("Missing grade item id $this->itemid", DEBUG_DEVELOPER);
-        }
-
         return $this->grade_item;
     }
 
@@ -442,12 +438,12 @@ class grade_grade extends grade_object {
     public function set_overridden($state, $refresh = true) {
         if (empty($this->overridden) and $state) {
             $this->overridden = time();
-            $this->update(null, true);
+            $this->update();
             return true;
 
         } else if (!empty($this->overridden) and !$state) {
             $this->overridden = 0;
-            $this->update(null, true);
+            $this->update();
 
             if ($refresh) {
                 //refresh when unlocking
@@ -718,14 +714,6 @@ class grade_grade extends grade_object {
     protected static function flatten_dependencies_array(&$dependson, &$dependencydepth) {
         // Flatten the nested dependencies - this will handle recursion bombs because it removes duplicates.
         $somethingchanged = true;
-        // First of all, delete any incorrect (not array or individual null) dependency, they aren't welcome.
-        // TODO: Maybe we should report about this happening, it shouldn't if all dependencies are correct and consistent.
-        foreach ($dependson as $itemid => $depends) {
-            $depends = is_array($depends) ? $depends : []; // Only arrays are accepted.
-            $dependson[$itemid] = array_filter($depends, function($val) { // Only not-null values are accepted.
-                return !is_null($val);
-            });
-        }
         while ($somethingchanged) {
             $somethingchanged = false;
 
@@ -733,7 +721,7 @@ class grade_grade extends grade_object {
                 // Make a copy so we can tell if it changed.
                 $before = $dependson[$itemid];
                 foreach ($depends as $subitemid => $subdepends) {
-                    $dependson[$itemid] = array_unique(array_merge($depends, $dependson[$subdepends] ?? []));
+                    $dependson[$itemid] = array_unique(array_merge($depends, $dependson[$subdepends]));
                     sort($dependson[$itemid], SORT_NUMERIC);
                 }
                 if ($before != $dependson[$itemid]) {
@@ -768,7 +756,7 @@ class grade_grade extends grade_object {
         global $CFG;
 
         if (count($grade_grades) !== count($grade_items)) {
-            throw new \moodle_exception('invalidarraysize', 'debug', '', 'grade_grade::get_hiding_affected()!');
+            print_error('invalidarraysize', 'debug', '', 'grade_grade::get_hiding_affected()!');
         }
 
         $dependson = array();
@@ -788,15 +776,13 @@ class grade_grade extends grade_object {
             $dependson[$grade_grade->itemid] = $grade_items[$grade_grade->itemid]->depends_on();
             if ($grade_grade->is_excluded()) {
                 //nothing to do, aggregation is ok
-                continue;
             } else if ($grade_grade->is_hidden()) {
                 $hiddenfound = true;
                 $altered[$grade_grade->itemid] = null;
                 $alteredaggregationstatus[$grade_grade->itemid] = 'dropped';
                 $alteredaggregationweight[$grade_grade->itemid] = 0;
-            } else if ($grade_grade->is_overridden()) {
-                // No need to recalculate overridden grades.
-                continue;
+            } else if ($grade_grade->is_locked() or $grade_grade->is_overridden()) {
+                // no need to recalculate locked or overridden grades
             } else {
                 if (!empty($dependson[$grade_grade->itemid])) {
                     $dependencydepth[$grade_grade->itemid] = 1;
@@ -856,11 +842,9 @@ class grade_grade extends grade_object {
                     } else {
                         // depends on altered grades - we should try to recalculate if possible
                         if ($grade_items[$do]->is_calculated() or
-                            (!$grade_items[$do]->is_category_item() and !$grade_items[$do]->is_course_item()) or
-                            ($grade_items[$do]->is_category_item() and $grade_items[$do]->is_locked())
+                            (!$grade_items[$do]->is_category_item() and !$grade_items[$do]->is_course_item())
                         ) {
                             // This is a grade item that is not a category or course and has been affected by grade hiding.
-                            // Or a grade item that is a category and it is locked.
                             // I guess this means it is a calculation that needs to be recalculated.
                             $unknown[$do] = $grade_grades[$do]->finalgrade;
                             unset($todo[$key]);
@@ -1030,19 +1014,30 @@ class grade_grade extends grade_object {
     }
 
     /**
+     * Insert the grade_grade instance into the database.
+     *
+     * @param string $source From where was the object inserted (mod/forum, manual, etc.)
+     * @return int The new grade_grade ID if successful, false otherwise
+     */
+    public function insert($source=null) {
+        // TODO: dategraded hack - do not update times, they are used for submission and grading (MDL-31379)
+        //$this->timecreated = $this->timemodified = time();
+        return parent::insert($source);
+    }
+
+    /**
      * In addition to update() as defined in grade_object rounds the float numbers using php function,
      * the reason is we need to compare the db value with computed number to skip updates if possible.
      *
      * @param string $source from where was the object inserted (mod/forum, manual, etc.)
-     * @param bool $isbulkupdate If bulk grade update is happening.
      * @return bool success
      */
-    public function update($source=null, $isbulkupdate = false) {
+    public function update($source=null) {
         $this->rawgrade = grade_floatval($this->rawgrade);
         $this->finalgrade = grade_floatval($this->finalgrade);
         $this->rawgrademin = grade_floatval($this->rawgrademin);
         $this->rawgrademax = grade_floatval($this->rawgrademax);
-        return parent::update($source, $isbulkupdate);
+        return parent::update($source);
     }
 
 
@@ -1122,7 +1117,8 @@ class grade_grade extends grade_object {
         $success = parent::delete($source);
 
         // If the grade was deleted successfully trigger a grade_deleted event.
-        if ($success && !empty($this->grade_item)) {
+        if ($success) {
+            $this->load_grade_item();
             \core\event\grade_deleted::create_from_grade($this)->trigger();
         }
 
@@ -1135,9 +1131,8 @@ class grade_grade extends grade_object {
      * has changed, and clear up a possible score cache.
      *
      * @param bool $deleted True if grade was actually deleted
-     * @param bool $isbulkupdate If bulk grade update is happening.
      */
-    protected function notify_changed($deleted, $isbulkupdate = false) {
+    protected function notify_changed($deleted) {
         global $CFG;
 
         // Condition code may cache the grades for conditional availability of
@@ -1162,10 +1157,8 @@ class grade_grade extends grade_object {
             return;
         }
 
-        // Load information about grade item, exit if the grade item is missing.
-        if (!$this->load_grade_item()) {
-            return;
-        }
+        // Load information about grade item
+        $this->load_grade_item();
 
         // Only course-modules have completion data
         if ($this->grade_item->itemtype!='mod') {
@@ -1198,7 +1191,7 @@ class grade_grade extends grade_object {
         }
 
         // Pass information on to completion system
-        $completion->inform_grade_changed($cm, $this->grade_item, $this, $deleted, $isbulkupdate);
+        $completion->inform_grade_changed($cm, $this->grade_item, $this, $deleted);
     }
 
     /**

@@ -33,21 +33,19 @@ $exportuser = optional_param('exportuser', false, PARAM_BOOL); // Flag for expor
 $exporttime = optional_param('exporttime', false, PARAM_BOOL); // Flag for exporting date/time information
 $exportapproval = optional_param('exportapproval', false, PARAM_BOOL); // Flag for exporting user details
 $tags = optional_param('exporttags', false, PARAM_BOOL); // Flag for exporting user details.
-$redirectbackto = optional_param('backto', '', PARAM_LOCALURL); // The location to redirect back to.
 
-$url = new moodle_url('/mod/data/export.php', array('d' => $d));
-$PAGE->set_url($url);
+$PAGE->set_url('/mod/data/export.php', array('d'=>$d));
 
 if (! $data = $DB->get_record('data', array('id'=>$d))) {
-    throw new \moodle_exception('wrongdataid', 'data');
+    print_error('wrongdataid', 'data');
 }
 
 if (! $cm = get_coursemodule_from_instance('data', $data->id, $data->course)) {
-    throw new \moodle_exception('invalidcoursemodule');
+    print_error('invalidcoursemodule');
 }
 
 if(! $course = $DB->get_record('course', array('id'=>$cm->course))) {
-    throw new \moodle_exception('invalidcourseid');
+    print_error('invalidcourseid');
 }
 
 // fill in missing properties needed for updating of instance
@@ -67,7 +65,7 @@ if(empty($fieldrecords)) {
     if (has_capability('mod/data:managetemplates', $context)) {
         redirect($CFG->wwwroot.'/mod/data/field.php?d='.$data->id);
     } else {
-        throw new \moodle_exception('nofieldindatabase', 'data');
+        print_error('nofieldindatabase', 'data');
     }
 }
 
@@ -77,54 +75,56 @@ foreach ($fieldrecords as $fieldrecord) {
     $fields[]= data_get_field($fieldrecord, $data);
 }
 
-$mform = new mod_data_export_form(new moodle_url('/mod/data/export.php', ['d' => $data->id,
-    'backto' => $redirectbackto]), $fields, $cm, $data);
 
-if ($mform->is_cancelled()) {
-    $redirectbackto = !empty($redirectbackto) ? $redirectbackto :
-        new \moodle_url('/mod/data/view.php', ['d' => $data->id]);
-    redirect($redirectbackto);
-} else if ($formdata = (array) $mform->get_data()) {
-    $selectedfields = array();
-    foreach ($formdata as $key => $value) {
-        //field form elements are field_1 field_2 etc. 0 if not selected. 1 if selected.
-        if (strpos($key, 'field_')===0 && !empty($value)) {
-            $selectedfields[] = substr($key, 6);
-        }
-    }
+$mform = new mod_data_export_form('export.php?d='.$data->id, $fields, $cm, $data);
 
+if($mform->is_cancelled()) {
+    redirect('view.php?d='.$data->id);
+} elseif (!$formdata = (array) $mform->get_data()) {
+    // build header to match the rest of the UI
+    $PAGE->set_title($data->name);
+    $PAGE->set_heading($course->fullname);
+    $PAGE->force_settings_menu(true);
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(format_string($data->name), 2);
+    echo $OUTPUT->box(format_module_intro('data', $data, $cm->id), 'generalbox', 'intro');
+
+    $url = new moodle_url('/mod/data/export.php', array('d' => $d));
+    groups_print_activity_menu($cm, $url);
+
+    // these are for the tab display
     $currentgroup = groups_get_activity_group($cm);
+    $groupmode = groups_get_activity_groupmode($cm);
+    $currenttab = 'export';
+    include('tabs.php');
+    $mform->display();
+    echo $OUTPUT->footer();
+    die;
+}
 
-    $exportdata = data_get_exportdata($data->id, $fields, $selectedfields, $currentgroup, $context,
-        $exportuser, $exporttime, $exportapproval, $tags);
-    $count = count($exportdata);
-    switch ($formdata['exporttype']) {
-        case 'csv':
-            data_export_csv($exportdata, $formdata['delimiter_name'], $data->name, $count);
-            break;
-        case 'xls':
-            data_export_xls($exportdata, $data->name, $count);
-            break;
-        case 'ods':
-            data_export_ods($exportdata, $data->name, $count);
-            break;
+$selectedfields = array();
+foreach ($formdata as $key => $value) {
+    //field form elements are field_1 field_2 etc. 0 if not selected. 1 if selected.
+    if (strpos($key, 'field_')===0 && !empty($value)) {
+        $selectedfields[] = substr($key, 6);
     }
 }
 
-// Build header to match the rest of the UI.
-$PAGE->add_body_class('mediumwidth');
-$PAGE->set_title($data->name);
-$PAGE->set_heading($course->fullname);
-$PAGE->force_settings_menu(true);
-$PAGE->set_secondary_active_tab('modulepage');
-$PAGE->activityheader->disable();
-echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('exportentries', 'data'));
+$currentgroup = groups_get_activity_group($cm);
 
-groups_print_activity_menu($cm, $url);
-
-$mform->display();
-
-echo $OUTPUT->footer();
+$exportdata = data_get_exportdata($data->id, $fields, $selectedfields, $currentgroup, $context,
+                                  $exportuser, $exporttime, $exportapproval, $tags);
+$count = count($exportdata);
+switch ($formdata['exporttype']) {
+    case 'csv':
+        data_export_csv($exportdata, $formdata['delimiter_name'], $data->name, $count);
+        break;
+    case 'xls':
+        data_export_xls($exportdata, $data->name, $count);
+        break;
+    case 'ods':
+        data_export_ods($exportdata, $data->name, $count);
+        break;
+}
 
 die();

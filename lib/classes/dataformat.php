@@ -18,27 +18,30 @@
  * Class containing utility methods for dataformats
  *
  * @package     core
- * @copyright   2020 Paul Holden <paulh@moodle.com>
+ * @copyright   2020 Moodle Pty Ltd <support@moodle.com>
+ * @author      2020 Paul Holden <paulh@moodle.com>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @license     Moodle Workplace License, distribution is restricted, contact support@moodle.com
  */
 
 namespace core;
 
 use coding_exception;
 use core_php_time_limit;
-use stored_file;
 
 /**
  * Dataformat utility class
  *
  * @package     core
- * @copyright   2020 Paul Holden <paulh@moodle.com>
+ * @copyright   2020 Moodle Pty Ltd <support@moodle.com>
+ * @author      2020 Paul Holden <paulh@moodle.com>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @license     Moodle Workplace License, distribution is restricted, contact support@moodle.com
  */
 class dataformat {
 
     /**
-     * Return an instance of a dataformat writer from given dataformat type
+     * Return an instead of a dataformat writer from given dataformat type
      *
      * @param string $dataformat
      * @return dataformat\base
@@ -60,8 +63,7 @@ class dataformat {
      * @param string $dataformat
      * @param array $columns
      * @param Iterable $iterator
-     * @param callable|null $callback Optional callback method to apply to each record prior to writing, which accepts two
-     *      parameters as such: function($record, bool $supportshtml) returning formatted record
+     * @param callable|null $callback
      * @throws coding_exception
      */
     public static function download_data(string $filename, string $dataformat, array $columns, Iterable $iterator,
@@ -91,7 +93,7 @@ class dataformat {
         $rownum = 0;
         foreach ($iterator as $row) {
             if (is_callable($callback)) {
-                $row = $callback($row, $format->supports_html());
+                $row = $callback($row);
             }
             if ($row === null) {
                 continue;
@@ -133,7 +135,7 @@ class dataformat {
         $rownum = 0;
         foreach ($iterator as $row) {
             if (is_callable($callback)) {
-                $row = $callback($row, $format->supports_html());
+                $row = $callback($row);
             }
             if ($row === null) {
                 continue;
@@ -145,26 +147,5 @@ class dataformat {
         $format->close_output_to_file();
 
         return $filepath;
-    }
-
-    /**
-     * Writes a formatted data file to file storage
-     *
-     * @param array $filerecord File record for storage, 'filename' extension should be omitted as it's added by the dataformat
-     * @param string $dataformat
-     * @param array $columns
-     * @param Iterable $iterator Iterable set of records to write
-     * @param callable|null $callback Optional callback method to apply to each record prior to writing
-     * @return stored_file
-     */
-    public static function write_data_to_filearea(array $filerecord, string $dataformat, array $columns, Iterable $iterator,
-            callable $callback = null): stored_file {
-
-        $filepath = self::write_data($filerecord['filename'], $dataformat, $columns, $iterator, $callback);
-
-        // Update filename of returned file record.
-        $filerecord['filename'] = basename($filepath);
-
-        return get_file_storage()->create_file_from_pathname($filerecord, $filepath);
     }
 }

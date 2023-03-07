@@ -81,13 +81,8 @@ class external extends \external_api {
         global $CFG, $PAGE;
 
         // Validate parameter.
-        [
-            'query' => $query,
-            'courseid' => $courseid,
-        ] = self::validate_parameters(self::get_relevant_users_parameters(), [
-            'query' => $query,
-            'courseid' => $courseid,
-        ]);
+        self::validate_parameters(self::get_relevant_users_parameters(),
+                ['query' => $query, 'courseid' => $courseid]);
 
         // Validate the context (search page is always system context).
         $systemcontext = \context_system::instance();

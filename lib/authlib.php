@@ -117,9 +117,6 @@ class auth_plugin_base {
      */
     protected $errorlogtag = '';
 
-    /** @var array Stores extra information available to the logged in event. */
-    protected $extrauserinfo = [];
-
     /**
      * This is the primary method that is used by the authenticate_user_login()
      * function in moodlelib.php.
@@ -136,7 +133,7 @@ class auth_plugin_base {
      * @return bool Authentication success or failure.
      */
     function user_login($username, $password) {
-        throw new \moodle_exception('mustbeoveride', 'debug', '', 'user_login()' );
+        print_error('mustbeoveride', 'debug', '', 'user_login()' );
     }
 
     /**
@@ -305,7 +302,7 @@ class auth_plugin_base {
      */
     function user_signup($user, $notify=true) {
         //override when can signup
-        throw new \moodle_exception('mustbeoveride', 'debug', '', 'user_signup()' );
+        print_error('mustbeoveride', 'debug', '', 'user_signup()' );
     }
 
     /**
@@ -338,7 +335,7 @@ class auth_plugin_base {
      */
     function user_confirm($username, $confirmsecret) {
         //override when can confirm
-        throw new \moodle_exception('mustbeoveride', 'debug', '', 'user_confirm()' );
+        print_error('mustbeoveride', 'debug', '', 'user_confirm()' );
     }
 
     /**
@@ -601,16 +598,14 @@ class auth_plugin_base {
      * @return array list of custom fields.
      */
     public function get_custom_user_profile_fields() {
-        global $CFG;
-        require_once($CFG->dirroot . '/user/profile/lib.php');
-
+        global $DB;
         // If already retrieved then return.
         if (!is_null($this->customfields)) {
             return $this->customfields;
         }
 
         $this->customfields = array();
-        if ($proffields = profile_get_custom_fields()) {
+        if ($proffields = $DB->get_records('user_info_field')) {
             foreach ($proffields as $proffield) {
                 $this->customfields[] = 'profile_field_'.$proffield->shortname;
             }
@@ -654,7 +649,7 @@ class auth_plugin_base {
         $user = $DB->get_record('user', array('username' => $username, 'mnethostid' => $CFG->mnet_localhost_id));
         if (empty($user)) { // Trouble.
             error_log($this->errorlogtag . get_string('auth_usernotexist', 'auth', $username));
-            throw new \moodle_exception('auth_usernotexist', 'auth', '', $username);
+            print_error('auth_usernotexist', 'auth', '', $username);
             die;
         }
 
@@ -810,25 +805,6 @@ class auth_plugin_base {
             'message' => $message
         ];
     }
-
-    /**
-     * Set extra user information.
-     *
-     * @param array $values Any Key value pair.
-     * @return void
-     */
-    public function set_extrauserinfo(array $values): void {
-        $this->extrauserinfo = $values;
-    }
-
-    /**
-     * Returns extra user information.
-     *
-     * @return array An array of keys and values
-     */
-    public function get_extrauserinfo(): array {
-        return $this->extrauserinfo;
-    }
 }
 
 /**
@@ -899,7 +875,6 @@ function login_attempt_valid($user) {
 /**
  * To be called after failed user login.
  * @param stdClass $user
- * @throws moodle_exception
  */
 function login_attempt_failed($user) {
     global $CFG;
@@ -911,53 +886,30 @@ function login_attempt_failed($user) {
         return;
     }
 
-    // Force user preferences cache reload to ensure the most up-to-date login_failed_count is fetched.
-    // This is perhaps overzealous but is the documented way of reloading the cache, as per the test method
-    // 'test_check_user_preferences_loaded'.
-    unset($user->preference);
+    $count = get_user_preferences('login_failed_count', 0, $user);
+    $last = get_user_preferences('login_failed_last', 0, $user);
+    $sincescuccess = get_user_preferences('login_failed_count_since_success', $count, $user);
+    $sincescuccess = $sincescuccess + 1;
+    set_user_preference('login_failed_count_since_success', $sincescuccess, $user);
 
-    $resource = 'user:' . $user->id;
-    $lockfactory = \core\lock\lock_config::get_lock_factory('core_failed_login_count_lock');
+    if (empty($CFG->lockoutthreshold)) {
+        // No threshold means no lockout.
+        // Always unlock here, there might be some race conditions or leftovers when switching threshold.
+        login_unlock_account($user);
+        return;
+    }
 
-    // Get a new lock for the resource, waiting for it for a maximum of 10 seconds.
-    if ($lock = $lockfactory->get_lock($resource, 10)) {
-        try {
-            $count = get_user_preferences('login_failed_count', 0, $user);
-            $last = get_user_preferences('login_failed_last', 0, $user);
-            $sincescuccess = get_user_preferences('login_failed_count_since_success', $count, $user);
-            $sincescuccess = $sincescuccess + 1;
-            set_user_preference('login_failed_count_since_success', $sincescuccess, $user);
+    if (!empty($CFG->lockoutwindow) and time() - $last > $CFG->lockoutwindow) {
+        $count = 0;
+    }
 
-            if (empty($CFG->lockoutthreshold)) {
-                // No threshold means no lockout.
-                // Always unlock here, there might be some race conditions or leftovers when switching threshold.
-                login_unlock_account($user);
-                $lock->release();
-                return;
-            }
+    $count = $count+1;
 
-            if (!empty($CFG->lockoutwindow) and time() - $last > $CFG->lockoutwindow) {
-                $count = 0;
-            }
+    set_user_preference('login_failed_count', $count, $user);
+    set_user_preference('login_failed_last', time(), $user);
 
-            $count = $count + 1;
-
-            set_user_preference('login_failed_count', $count, $user);
-            set_user_preference('login_failed_last', time(), $user);
-
-            if ($count >= $CFG->lockoutthreshold) {
-                login_lock_account($user);
-            }
-
-            // Release locks when we're done.
-            $lock->release();
-        } catch (Exception $e) {
-            // Always release the lock on a failure.
-            $lock->release();
-        }
-    } else {
-        // We did not get access to the resource in time, give up.
-        throw new moodle_exception('locktimeout');
+    if ($count >= $CFG->lockoutthreshold) {
+        login_lock_account($user);
     }
 }
 
@@ -1150,7 +1102,7 @@ function signup_setup_new_user($user) {
     $user->secret      = random_string(15);
     $user->auth        = $CFG->registerauth;
     // Initialize alternate name fields to empty strings.
-    $namefields = array_diff(\core_user\fields::get_name_fields(), useredit_get_required_name_fields());
+    $namefields = array_diff(get_all_user_name_fields(), useredit_get_required_name_fields());
     foreach ($namefields as $namefield) {
         $user->$namefield = '';
     }
@@ -1207,8 +1159,7 @@ function signup_is_enabled() {
  * @since Moodle 3.3
  */
 function display_auth_lock_options($settings, $auth, $userfields, $helptext, $mapremotefields, $updateremotefields, $customfields = array()) {
-    global $CFG;
-    require_once($CFG->dirroot . '/user/profile/lib.php');
+    global $DB;
 
     // Introductory explanation and help text.
     if ($mapremotefields) {
@@ -1229,8 +1180,7 @@ function display_auth_lock_options($settings, $auth, $userfields, $helptext, $ma
     // Generate the list of profile fields to allow updates / lock.
     if (!empty($customfields)) {
         $userfields = array_merge($userfields, $customfields);
-        $allcustomfields = profile_get_custom_fields();
-        $customfieldname = array_combine(array_column($allcustomfields, 'shortname'), $allcustomfields);
+        $customfieldname = $DB->get_records('user_info_field', null, '', 'shortname, name');
     }
 
     foreach ($userfields as $field) {
@@ -1250,6 +1200,8 @@ function display_auth_lock_options($settings, $auth, $userfields, $helptext, $ma
                 // limit for the setting name is 100.
                 $fieldnametoolong = true;
             }
+        } else if ($fieldname == 'url') {
+            $fieldname = get_string('webpage');
         } else {
             $fieldname = get_string($fieldname);
         }

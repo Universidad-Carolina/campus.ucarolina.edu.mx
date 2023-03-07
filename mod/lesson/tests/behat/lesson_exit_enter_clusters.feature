@@ -15,10 +15,12 @@ Feature: In a lesson activity, students can exit and re-enter the activity when 
       | user | course | role |
       | teacher1 | C1 | editingteacher |
       | student1 | C1 | student |
-    And the following "activities" exist:
-      | activity   | name                | course | idnumber    |
-      | lesson     | Lesson with cluster | C1     | lesson1     |
-    And I am on the "Lesson with cluster" "lesson activity" page logged in as teacher1
+    And I log in as "teacher1"
+    And I am on "Course 1" course homepage with editing mode on
+    And I add a "Lesson" to section "1" and I fill the form with:
+      | Name | Lesson with cluster |
+      | Description | Cluster lesson description |
+    And I follow "Lesson with cluster"
     And I follow "Add a content page"
     And I set the following fields to these values:
       | Page title | First page name |
@@ -26,7 +28,7 @@ Feature: In a lesson activity, students can exit and re-enter the activity when 
       | id_answer_editor_0 | Next page |
       | id_jumpto_0 | Next page |
     And I press "Save page"
-    And I select edit type "Expanded"
+    And I follow "Expanded"
     And I click on "Add a cluster" "link" in the "//div[contains(concat(' ', normalize-space(@class), ' '), ' addlinks ')][2]" "xpath_element"
     And I follow "Update page: Cluster"
     And I set the following fields to these values:
@@ -183,9 +185,12 @@ Feature: In a lesson activity, students can exit and re-enter the activity when 
       | id_score_1 | 0 |
     And I press "Save page"
     And I click on "Add an end of cluster" "link" in the "//div[contains(concat(' ', normalize-space(@class), ' '), ' addlinks ')][16]" "xpath_element"
+    And I log out
 
   Scenario: Accessing as student to a cluster only lesson
-    Given I am on the "Lesson with cluster" "lesson activity" page logged in as student1
+    Given I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I follow "Lesson with cluster"
     And I should see "First page contents"
     And I press "Next page"
     And I should see "Correct answer"

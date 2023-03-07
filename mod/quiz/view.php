@@ -35,20 +35,20 @@ $q = optional_param('q',  0, PARAM_INT);  // Quiz ID.
 
 if ($id) {
     if (!$cm = get_coursemodule_from_id('quiz', $id)) {
-        throw new \moodle_exception('invalidcoursemodule');
+        print_error('invalidcoursemodule');
     }
     if (!$course = $DB->get_record('course', array('id' => $cm->course))) {
-        throw new \moodle_exception('coursemisconf');
+        print_error('coursemisconf');
     }
 } else {
     if (!$quiz = $DB->get_record('quiz', array('id' => $q))) {
-        throw new \moodle_exception('invalidquizid', 'quiz');
+        print_error('invalidquizid', 'quiz');
     }
     if (!$course = $DB->get_record('course', array('id' => $quiz->course))) {
-        throw new \moodle_exception('invalidcourseid');
+        print_error('invalidcourseid');
     }
     if (!$cm = get_coursemodule_from_instance("quiz", $quiz->id, $course->id)) {
-        throw new \moodle_exception('invalidcoursemodule');
+        print_error('invalidcoursemodule');
     }
 }
 
@@ -122,8 +122,6 @@ if (!$canpreview) {
 $mygradeoverridden = false;
 $gradebookfeedback = '';
 
-$item = null;
-
 $grading_info = grade_get_grades($course->id, 'mod', 'quiz', $quiz->id, $USER->id);
 if (!empty($grading_info->items)) {
     $item = $grading_info->items[0];
@@ -143,11 +141,6 @@ if (!empty($grading_info->items)) {
 $title = $course->shortname . ': ' . format_string($quiz->name);
 $PAGE->set_title($title);
 $PAGE->set_heading($course->fullname);
-if (html_is_blank($quiz->intro)) {
-    $PAGE->activityheader->set_description('');
-}
-$PAGE->add_body_class('limitedwidth');
-/** @var mod_quiz_renderer $output */
 $output = $PAGE->get_renderer('mod_quiz');
 
 // Print table with existing attempts.
@@ -192,14 +185,6 @@ if ($quiz->attempts != 1) {
             quiz_get_grading_option_name($quiz->grademethod));
 }
 
-// Inform user of the grade to pass if non-zero.
-if ($item && grade_floats_different($item->gradepass, 0)) {
-    $a = new stdClass();
-    $a->grade = quiz_format_grade($quiz, $item->gradepass);
-    $a->maxgrade = quiz_format_grade($quiz, $quiz->grade);
-    $viewobj->infomessages[] = get_string('gradetopassoutof', 'quiz', $a);
-}
-
 // Determine wheter a start attempt button should be displayed.
 $viewobj->quizhasquestions = $quizobj->has_questions();
 $viewobj->preventmessages = array();
@@ -208,39 +193,37 @@ if (!$viewobj->quizhasquestions) {
 
 } else {
     if ($unfinished) {
-        if ($canpreview) {
-            $viewobj->buttontext = get_string('continuepreview', 'quiz');
-        } else if ($canattempt) {
+        if ($canattempt) {
             $viewobj->buttontext = get_string('continueattemptquiz', 'quiz');
+        } else if ($canpreview) {
+            $viewobj->buttontext = get_string('continuepreview', 'quiz');
         }
+
     } else {
-        if ($canpreview) {
-            $viewobj->buttontext = get_string('previewquizstart', 'quiz');
-        } else if ($canattempt) {
+        if ($canattempt) {
             $viewobj->preventmessages = $viewobj->accessmanager->prevent_new_attempt(
                     $viewobj->numattempts, $viewobj->lastfinishedattempt);
             if ($viewobj->preventmessages) {
                 $viewobj->buttontext = '';
             } else if ($viewobj->numattempts == 0) {
-                $viewobj->buttontext = get_string('attemptquiz', 'quiz');
+                $viewobj->buttontext = get_string('attemptquiznow', 'quiz');
             } else {
                 $viewobj->buttontext = get_string('reattemptquiz', 'quiz');
             }
+
+        } else if ($canpreview) {
+            $viewobj->buttontext = get_string('previewquiznow', 'quiz');
         }
     }
 
-    // Users who can preview the quiz should be able to see all messages for not being able to access the quiz.
-    if ($canpreview) {
-        $viewobj->preventmessages = $viewobj->accessmanager->prevent_access();
-    } else if ($viewobj->buttontext) {
-        // If, so far, we think a button should be printed, so check if they will be allowed to access it.
+    // If, so far, we think a button should be printed, so check if they will be
+    // allowed to access it.
+    if ($viewobj->buttontext) {
         if (!$viewobj->moreattempts) {
             $viewobj->buttontext = '';
-        } else if ($canattempt) {
-            $viewobj->preventmessages = $viewobj->accessmanager->prevent_access();
-            if ($viewobj->preventmessages) {
-                $viewobj->buttontext = '';
-            }
+        } else if ($canattempt
+                && $viewobj->preventmessages = $viewobj->accessmanager->prevent_access()) {
+            $viewobj->buttontext = '';
         }
     }
 }
@@ -252,11 +235,11 @@ echo $OUTPUT->header();
 
 if (isguestuser()) {
     // Guests can't do a quiz, so offer them a choice of logging in or going back.
-    echo $output->view_page_guest($course, $quiz, $cm, $context, $viewobj->infomessages, $viewobj);
+    echo $output->view_page_guest($course, $quiz, $cm, $context, $viewobj->infomessages);
 } else if (!isguestuser() && !($canattempt || $canpreview
           || $viewobj->canreviewmine)) {
     // If they are not enrolled in this course in a good enough role, tell them to enrol.
-    echo $output->view_page_notenrolled($course, $quiz, $cm, $context, $viewobj->infomessages, $viewobj);
+    echo $output->view_page_notenrolled($course, $quiz, $cm, $context, $viewobj->infomessages);
 } else {
     echo $output->view_page($course, $quiz, $cm, $context, $viewobj);
 }

@@ -14,20 +14,30 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core;
+/**
+ * PHPUnit integration tests
+ *
+ * @package    core
+ * @category   phpunit
+ * @copyright  2012 Petr Skoda {@link http://skodak.org}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
 
 /**
  * Test basic_testcase extra features and PHPUnit Moodle integration.
  *
  * @package    core
- * @category   test
+ * @category   phpunit
  * @copyright  2012 Petr Skoda {@link http://skodak.org}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class basic_test extends \basic_testcase {
+class core_phpunit_basic_testcase extends basic_testcase {
     protected $testassertexecuted = false;
 
-    protected function setUp(): void {
+    protected function setUp() {
         parent::setUp();
         if ($this->getName() === 'test_setup_assert') {
             $this->assertTrue(true);
@@ -62,17 +72,17 @@ class basic_test extends \basic_testcase {
         $this->assertNotEquals($a, $b);
         $this->assertNotEquals($a, $d);
         $this->assertEquals($a, $c);
-        $this->assertEqualsCanonicalizing($a, $b);
+        $this->assertEquals($a, $b, '', 0, 10, true);
 
         // Objects.
-        $a = new \stdClass();
+        $a = new stdClass();
         $a->x = 'x';
         $a->y = 'y';
-        $b = new \stdClass(); // Switched order.
+        $b = new stdClass(); // Switched order.
         $b->y = 'y';
         $b->x = 'x';
         $c = $a;
-        $d = new \stdClass();
+        $d = new stdClass();
         $d->x = 'x';
         $d->y = 'y';
         $d->z = 'z';
@@ -86,6 +96,7 @@ class basic_test extends \basic_testcase {
         $this->assertEquals(1, '1');
         $this->assertEquals(null, '');
 
+        $this->assertNotEquals(1, '1 ');
         $this->assertNotEquals(0, '');
         $this->assertNotEquals(null, '0');
         $this->assertNotEquals(array(), '');
@@ -111,7 +122,7 @@ class basic_test extends \basic_testcase {
         $this->assertNotEmpty('0 ');
         $this->assertNotEmpty(true);
         $this->assertNotEmpty(array(null));
-        $this->assertNotEmpty(new \stdClass());
+        $this->assertNotEmpty(new stdClass());
     }
 
     /**
@@ -133,16 +144,6 @@ STRING;
     public function test_setup_assert() {
         $this->assertTrue($this->testassertexecuted);
         $this->testassertexecuted = false;
-    }
-
-    /**
-     * Test assert Tag
-     */
-    public function test_assert_tag() {
-        // This should succeed.
-        self::assertTag(['id' => 'testid'], "<div><span id='testid'></span></div>");
-        $this->expectException(\PHPUnit\Framework\ExpectationFailedException::class);
-        self::assertTag(['id' => 'testid'], "<div><div>");
     }
 
     // Uncomment following tests to see logging of unexpected changes in global state and database.

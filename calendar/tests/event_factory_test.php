@@ -14,24 +14,29 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core_calendar;
-
-use core_calendar\local\event\factories\event_factory;
-use core_calendar\local\event\entities\event_interface;
+/**
+ * Event factory test.
+ *
+ * @package    core_calendar
+ * @copyright  2017 Cameron Ball <cameron@cameron1729.xyz>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 require_once($CFG->dirroot . '/calendar/lib.php');
 
+use core_calendar\local\event\factories\event_factory;
+use core_calendar\local\event\entities\event_interface;
+
 /**
- * Event factory test.
+ * Event factory testcase.
  *
- * @package core_calendar
  * @copyright 2017 Cameron Ball <cameron@cameron1729.xyz>
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class event_factory_test extends \advanced_testcase {
+class core_calendar_event_factory_testcase extends advanced_testcase {
     /**
      * Test event class getters.
      *
@@ -474,7 +479,7 @@ class event_factory_test extends \advanced_testcase {
             $record->$name = $value;
         }
 
-        $event = new \calendar_event($record);
+        $event = new calendar_event($record);
         return $event->create($record, false);
     }
 }

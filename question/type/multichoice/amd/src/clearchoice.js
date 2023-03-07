@@ -55,10 +55,7 @@ define(['jquery', 'core/custom_interaction_events'], function($, CustomEvents) {
      * @param {Object} clearChoiceContainer The clear choice option container.
      */
     var hideClearChoiceOption = function(clearChoiceContainer) {
-        // We are using .sr-only and aria-hidden together so while the element is hidden
-        // from both the monitor and the screen-reader, it is still tabbable.
         clearChoiceContainer.addClass('sr-only');
-        clearChoiceContainer.attr('aria-hidden', true);
         clearChoiceContainer.find(SELECTORS.LINK).attr('tabindex', -1);
     };
 
@@ -69,7 +66,6 @@ define(['jquery', 'core/custom_interaction_events'], function($, CustomEvents) {
      */
     var showClearChoiceOption = function(clearChoiceContainer) {
         clearChoiceContainer.removeClass('sr-only');
-        clearChoiceContainer.removeAttr('aria-hidden');
         clearChoiceContainer.find(SELECTORS.LINK).attr('tabindex', 0);
         clearChoiceContainer.find(SELECTORS.RADIO).prop('disabled', true);
     };
@@ -93,7 +89,7 @@ define(['jquery', 'core/custom_interaction_events'], function($, CustomEvents) {
                 data.originalEvent.preventDefault();
         });
 
-        root.on('change', SELECTORS.CHOICE_ELEMENT, function() {
+        root.on(CustomEvents.events.activate, SELECTORS.CHOICE_ELEMENT, function() {
             // If the event has been triggered by any other choice, show the clear choice option.
             showClearChoiceOption(clearChoiceContainer);
         });
@@ -108,7 +104,7 @@ define(['jquery', 'core/custom_interaction_events'], function($, CustomEvents) {
 
     /**
      * Initialise clear choice module.
-     *
+
      * @param {string} root The question outer div prefix.
      * @param {string} fieldPrefix The "Clear choice" div prefix.
      */

@@ -34,9 +34,9 @@ use CFPropertyList\CFNumber;
 use CFPropertyList\CFPropertyList;
 use CFPropertyList\CFString;
 use CFPropertyList\CFType;
-use \Collator;
 use \DateTime;
 
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * Wrapper for CFPropertyList to handle low level iteration.
@@ -322,8 +322,6 @@ class property_list {
     /**
      * Recursively sort array alphabetically by key.
      *
-     * @link https://safeexambrowser.org/developer/seb-config-key.html
-     *
      * @param array $array Top level array to process.
      * @return array Processed array.
      */
@@ -333,23 +331,10 @@ class property_list {
                 $array[$key] = $this->array_sort($array[$key]);
             }
         }
-        // Sort assoc array. From SEB docs:
-        //
-        // All <dict> elements from the plist XML must be ordered (alphabetically sorted) by their key names. Use
-        // a recursive method to apply ordering also to nested dictionaries contained in the root-level dictionary
-        // and in arrays. Use non-localized (culture invariant), non-ASCII value based case insensitive ordering.
-        // For example the key <key>allowWlan</key> comes before <key>allowWLAN</key>. Cocoa/Obj-C and .NET/C#
-        // usually use this case insensitive ordering as default, but PHP for example doesn't.
+        // Sort assoc array. From SEB docs - "Use non-localized (culture invariant), non-ASCII value based case
+        // insensitive ordering."
         if ($this->is_associative_array($array)) {
-            // Note this is a pragmatic solution as none of the native PHP *sort method appear to sort strings that
-            // differ only in case (e.g. ["allowWLAN", "allowWlan"] is expected to have the lower version first).
-            $keys = array_keys($array);
-            (new Collator('root'))->asort($keys); // Use Unicode Collation Algorithm (UCA).
-            $original = $array;
-            $array = [];
-            foreach ($keys as $key) {
-                $array[$key] = $original[$key];
-            }
+            ksort($array, SORT_STRING | SORT_FLAG_CASE);
         }
 
         return $array;

@@ -14,16 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_chat;
-
 /**
- * Generator tests class.
+ * Genarator tests.
  *
  * @package    mod_chat
  * @copyright  2013 Frédéric Massart
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class generator_test extends \advanced_testcase {
+
+/**
+ * Genarator tests class.
+ *
+ * @package    mod_chat
+ * @copyright  2013 Frédéric Massart
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class mod_chat_generator_testcase extends advanced_testcase {
 
     public function test_create_instance() {
         global $DB;

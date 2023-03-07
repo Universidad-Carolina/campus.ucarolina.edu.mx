@@ -304,7 +304,6 @@ class repository_flickr_public extends repository {
                 'user_id' => $nsid,
                 'license' => $licenses,
                 'text' => $text,
-                'extras' => 'original_format,license,date_upload,last_update',
                 'media' => 'photos'
             )
         );
@@ -329,8 +328,7 @@ class repository_flickr_public extends repository {
     public function get_listing($path = '', $page = 1) {
         $people = $this->flickr->people_findByEmail($this->flickr_account);
         $this->nsid = $people['nsid'];
-        $photos = $this->flickr->people_getPublicPhotos($people['nsid'], 'original_format,license,date_upload,last_update',
-            24, $page);
+        $photos = $this->flickr->people_getPublicPhotos($people['nsid'], 'original_format', 24, $page);
         $ret = array();
 
         return $this->build_list($photos, $page, $ret);
@@ -343,7 +341,7 @@ class repository_flickr_public extends repository {
      * @param int $page
      * @return array
      */
-    private function build_list($photos, $page, &$ret) {
+    private function build_list($photos, $page = 1, &$ret) {
         global $OUTPUT;
 
         if (!empty($this->nsid)) {
@@ -384,27 +382,16 @@ class repository_flickr_public extends repository {
                     // displaying broken thumbnails in the repository.
                     $thumbnailsource = $OUTPUT->image_url(file_extension_icon($p['title'], 90))->out(false);
                 }
-
-                // Perform a HEAD request to the image to obtain it's Content-Length.
-                $curl = new curl();
-                $curl->head($this->get_link($p['id']));
-
-                // The photo sizes are statically cached, so we can retrieve image dimensions without another API call.
-                $bestsize = $this->get_best_size($p['id']);
-
                 $ret['list'][] = array(
                     'title' => $p['title'],
                     'source' => $p['id'],
                     'id' => $p['id'],
                     'thumbnail' => $thumbnailsource,
-                    'datecreated' => $p['dateupload'],
-                    'datemodified' => $p['lastupdate'],
-                    'size' => (int)($curl->get_info()['download_content_length']),
-                    'image_width' => $bestsize['width'],
-                    'image_height' => $bestsize['height'],
+                    'date' => '',
+                    'size' => 'unknown',
                     'url' => 'http://www.flickr.com/photos/' . $p['owner'] . '/' . $p['id'],
-                    'license' => $this->license4moodle($p['license']),
-                    'author' => $p['owner'],
+                    'haslicense' => true,
+                    'hasauthor' => true
                 );
             }
         }

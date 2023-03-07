@@ -54,12 +54,10 @@ function tool_dataprivacy_myprofile_navigation(tree $tree, $user, $iscurrentuser
     // Contact data protection officer link.
     if (\tool_dataprivacy\api::can_contact_dpo() && $iscurrentuser) {
         $renderer = $PAGE->get_renderer('tool_dataprivacy');
-        $content = $renderer->render_contact_dpo_link();
+        $content = $renderer->render_contact_dpo_link($USER->email);
         $node = new core_user\output\myprofile\node('privacyandpolicies', 'contactdpo', null, null, null, $content);
         $category->add_node($node);
-
-        // Require our Javascript module to handle contact DPO interaction.
-        $PAGE->requires->js_call_amd('tool_dataprivacy/contactdpo', 'init');
+        $PAGE->requires->js_call_amd('tool_dataprivacy/myrequestactions', 'init');
 
         $url = new moodle_url('/admin/tool/dataprivacy/mydatarequests.php');
         $node = new core_user\output\myprofile\node('privacyandpolicies', 'datarequests',
@@ -68,9 +66,8 @@ function tool_dataprivacy_myprofile_navigation(tree $tree, $user, $iscurrentuser
 
         // Check if the user has an ongoing data export request.
         $hasexportrequest = \tool_dataprivacy\api::has_ongoing_request($user->id, \tool_dataprivacy\api::DATAREQUEST_TYPE_EXPORT);
-        // Show data export link only if the user doesn't have an ongoing data export request and has permission
-        // to download own data.
-        if (!$hasexportrequest && \tool_dataprivacy\api::can_create_data_download_request_for_self()) {
+        // Show data export link only if the user doesn't have an ongoing data export request.
+        if (!$hasexportrequest) {
             $exportparams = ['type' => \tool_dataprivacy\api::DATAREQUEST_TYPE_EXPORT];
             $exporturl = new moodle_url('/admin/tool/dataprivacy/createdatarequest.php', $exportparams);
             $exportnode = new core_user\output\myprofile\node('privacyandpolicies', 'requestdataexport',
@@ -98,7 +95,7 @@ function tool_dataprivacy_myprofile_navigation(tree $tree, $user, $iscurrentuser
         $showsummary = true;
     }
 
-    if ($showsummary && $iscurrentuser) {
+    if ($showsummary) {
         $summaryurl = new moodle_url('/admin/tool/dataprivacy/summary.php');
         $summarynode = new core_user\output\myprofile\node('privacyandpolicies', 'retentionsummary',
             get_string('dataretentionsummary', 'tool_dataprivacy'), null, $summaryurl);

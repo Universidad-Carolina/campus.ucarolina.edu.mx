@@ -70,7 +70,7 @@ if (!$singlegroup) {
         case 'showgroupsettingsform':
         case 'showaddmembersform':
         case 'updatemembers':
-            throw new \moodle_exception('errorselectone', 'group', $returnurl);
+            print_error('errorselectone', 'group', $returnurl);
     }
 }
 
@@ -81,15 +81,9 @@ switch ($action) {
     case 'ajax_getmembersingroup':
         $roles = array();
 
-        $userfieldsapi = \core_user\fields::for_identity($context)->with_userpic();
-        [
-            'selects' => $userfieldsselects,
-            'joins' => $userfieldsjoin,
-            'params' => $userfieldsparams
-        ] = (array)$userfieldsapi->get_sql('u', true, '', '', false);
-        $extrafields = $userfieldsapi->get_required_fields([\core_user\fields::PURPOSE_IDENTITY]);
+        $extrafields = get_extra_user_fields($context);
         if ($groupmemberroles = groups_get_members_by_role($groupids[0], $courseid,
-                'u.id, ' . $userfieldsselects, null, '', $userfieldsparams, $userfieldsjoin)) {
+                'u.id, ' . user_picture::fields('u', $extrafields))) {
 
             $viewfullnames = has_capability('moodle/site:viewfullnames', $context);
 
@@ -104,8 +98,7 @@ switch ($action) {
                     if ($extrafields) {
                         $extrafieldsdisplay = [];
                         foreach ($extrafields as $field) {
-                            // No escaping here, handled client side in response to AJAX request.
-                            $extrafieldsdisplay[] = $member->{$field};
+                            $extrafieldsdisplay[] = s($member->{$field});
                         }
                         $shortmember->name .= ' (' . implode(', ', $extrafieldsdisplay) . ')';
                     }
@@ -120,7 +113,7 @@ switch ($action) {
 
     case 'deletegroup':
         if (count($groupids) == 0) {
-            throw new \moodle_exception('errorselectsome', 'group', $returnurl);
+            print_error('errorselectsome','group',$returnurl);
         }
         $groupidlist = implode(',', $groupids);
         redirect(new moodle_url('/group/delete.php', array('courseid'=>$courseid, 'groups'=>$groupidlist)));
@@ -156,7 +149,7 @@ switch ($action) {
         break;
 
     default: //ERROR.
-        throw new \moodle_exception('unknowaction', '', $returnurl);
+        print_error('unknowaction', '', $returnurl);
         break;
 }
 
@@ -170,7 +163,10 @@ $PAGE->set_heading($course->fullname);
 $PAGE->set_pagelayout('standard');
 echo $OUTPUT->header();
 
-echo $OUTPUT->render_participants_tertiary_nav($course);
+// Add tabs
+$currenttab = 'groups';
+require('tabs.php');
+
 echo $OUTPUT->heading(format_string($course->shortname, true, array('context' => $context)) .' '.$strgroups, 3);
 
 $groups = groups_get_all_groups($courseid);
@@ -198,7 +194,7 @@ if ($groups) {
         $groupoptions[] = (object) [
             'value' => $group->id,
             'selected' => $selected,
-            'text' => s($groupname)
+            'text' => $groupname
         ];
     }
 }
@@ -206,15 +202,9 @@ if ($groups) {
 // Get list of group members to render if there is a single selected group.
 $members = array();
 if ($singlegroup) {
-    $userfieldsapi = \core_user\fields::for_identity($context)->with_userpic();
-    [
-        'selects' => $userfieldsselects,
-        'joins' => $userfieldsjoin,
-        'params' => $userfieldsparams
-    ] = (array)$userfieldsapi->get_sql('u', true, '', '', false);
-    $extrafields = $userfieldsapi->get_required_fields([\core_user\fields::PURPOSE_IDENTITY]);
+    $extrafields = get_extra_user_fields($context);
     if ($groupmemberroles = groups_get_members_by_role(reset($groupids), $courseid,
-            'u.id, ' . $userfieldsselects, null, '', $userfieldsparams, $userfieldsjoin)) {
+            'u.id, ' . user_picture::fields('u', $extrafields))) {
 
         $viewfullnames = has_capability('moodle/site:viewfullnames', $context);
 
@@ -278,7 +268,7 @@ function groups_param_action($prefix = 'act_') {
     }
     if ($action && !preg_match('/^\w+$/', $action)) {
         $action = false;
-        throw new \moodle_exception('unknowaction');
+        print_error('unknowaction');
     }
     ///if (debugging()) echo 'Debug: '.$action;
     return $action;

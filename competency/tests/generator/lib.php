@@ -136,11 +136,7 @@ class core_competency_generator extends component_generator_base {
      * @return competency_framework
      */
     public function create_framework($record = null) {
-        if (defined('BEHAT_TEST') && BEHAT_TEST) {
-            $generator = behat_util::get_data_generator();
-        } else {
-            $generator = phpunit_util::get_data_generator();
-        }
+        $generator = phpunit_util::get_data_generator();
         $this->frameworkcount++;
         $i = $this->frameworkcount;
         $record = (object) $record;
@@ -588,3 +584,4 @@ class core_competency_generator extends component_generator_base {
     }
 
 }
+

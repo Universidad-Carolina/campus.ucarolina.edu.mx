@@ -14,7 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-use core\output\checkbox_toggleall;
+/**
+ * Contains class core_tag_manage_table
+ *
+ * @package   core_tag
+ * @copyright 2015 Marina Glancy
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -23,7 +29,7 @@ require_once($CFG->libdir . '/tablelib.php');
 /**
  * Class core_tag_manage_table
  *
- * @package   core_tag
+ * @package   core
  * @copyright 2015 Marina Glancy
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -41,8 +47,7 @@ class core_tag_manage_table extends table_sql {
      * @param int $tagcollid
      */
     public function __construct($tagcollid) {
-        global $USER, $PAGE, $OUTPUT;
-
+        global $USER, $CFG, $PAGE;
         parent::__construct('tag-management-list-'.$USER->id);
 
         $this->tagcollid = $tagcollid;
@@ -53,16 +58,8 @@ class core_tag_manage_table extends table_sql {
         $baseurl = new moodle_url('/tag/manage.php', array('tc' => $tagcollid,
             'perpage' => $perpage, 'page' => $page, 'filter' => $filter));
 
-        $checkboxall = new checkbox_toggleall('tags-manage', true, [
-            'id' => 'select-all-tags',
-            'name' => 'select-all-tags',
-            'checked' => false,
-            'label' => get_string('selectall'),
-            'labelclasses' => 'accesshide',
-        ]);
-
         $tablecolumns = array('select', 'name', 'fullname', 'count', 'flag', 'timemodified', 'isstandard', 'controls');
-        $tableheaders = array($OUTPUT->render($checkboxall),
+        $tableheaders = array(get_string('select', 'tag'),
                               get_string('name', 'tag'),
                               get_string('owner', 'tag'),
                               get_string('count', 'tag'),
@@ -158,8 +155,7 @@ class core_tag_manage_table extends table_sql {
             $sort = "tg.name";
         }
 
-        $userfieldsapi = \core_user\fields::for_name();
-        $allusernames = $userfieldsapi->get_sql('u', false, '', '', false)->selects;
+        $allusernames = get_all_user_name_fields(true, 'u');
         $sql = "
             SELECT tg.id, tg.name, tg.rawname, tg.isstandard, tg.flag, tg.timemodified,
                        u.id AS owner, $allusernames,
@@ -180,27 +176,13 @@ class core_tag_manage_table extends table_sql {
     }
 
     /**
-     * Override the table show_hide_link to not show for select column.
-     *
-     * @param string $column the column name, index into various names
-     * @param int $index numerical index of the column
-     * @return string HTML fragment
-     */
-    protected function show_hide_link($column, $index) {
-        if ($index > 0) {
-            return parent::show_hide_link($column, $index);
-        }
-        return '';
-    }
-
-    /**
      * Get any extra classes names to add to this row in the HTML
      *
      * @param stdClass $row array the data for this row.
      * @return string added to the class="" attribute of the tr.
      */
     public function get_row_class($row) {
-        return $row->flag ? 'table-warning' : '';
+        return $row->flag ? 'flagged-tag' : '';
     }
 
     /**
@@ -269,18 +251,11 @@ class core_tag_manage_table extends table_sql {
      * @return string
      */
     public function col_select($tag) {
-        global $OUTPUT;
-
-        $checkbox = new checkbox_toggleall('tags-manage', false, [
-            'id' => 'tagselect' . $tag->id,
-            'name' => 'tagschecked[]',
-            'value' => $tag->id,
-            'checked' => false,
-            'label' => get_string('selecttag', 'tag', $tag->rawname),
-            'labelclasses' => 'accesshide',
-        ]);
-
-        return $OUTPUT->render($checkbox);
+        $id = "tagselect" . $tag->id;
+        return html_writer::label(get_string('selecttag', 'tag', $tag->rawname), $id,
+                false, array('class' => 'accesshide')).
+                html_writer::empty_tag('input', array('type' => 'checkbox',
+                'name' => 'tagschecked[]', 'value' => $tag->id, 'id' => $id));
     }
 
     /**

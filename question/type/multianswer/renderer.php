@@ -46,38 +46,17 @@ class qtype_multianswer_renderer extends qtype_renderer {
 
         $output = '';
         $subquestions = array();
-
-        $missingsubquestions = false;
         foreach ($question->textfragments as $i => $fragment) {
             if ($i > 0) {
                 $index = $question->places[$i];
-                $questionisvalid = !empty($question->subquestions[$index]) &&
-                                 $question->subquestions[$index]->qtype->name() !== 'subquestion_replacement';
-
-                if (!$questionisvalid) {
-                    $missingsubquestions = true;
-                    $questionreplacement = qtype_multianswer::deleted_subquestion_replacement();
-
-                    // It is possible that the subquestion index does not exist. When corrupted quizzes (see MDL-54724) are
-                    // restored, the sequence column of mdl_quiz_multianswer can be empty, in this case
-                    // qtype_multianswer::get_question_options cannot fill in deleted questions, so we need to do it here.
-                    $question->subquestions[$index] = $question->subquestions[$index] ?? $questionreplacement;
-                }
-
                 $token = 'qtypemultianswer' . $i . 'marker';
                 $token = '<span class="nolink">' . $token . '</span>';
                 $output .= $token;
                 $subquestions[$token] = $this->subquestion($qa, $options, $index,
                         $question->subquestions[$index]);
             }
-
             $output .= $fragment;
         }
-
-        if ($missingsubquestions) {
-            $output = $this->notification(get_string('corruptedquestion', 'qtype_multianswer'), 'error') . $output;
-        }
-
         $output = $question->format_text($output, $question->questiontextformat,
                 $qa, 'question', 'questiontext', $question->id);
         $output = str_replace(array_keys($subquestions), array_values($subquestions), $output);
@@ -99,7 +78,7 @@ class qtype_multianswer_renderer extends qtype_renderer {
     }
 
     public function subquestion(question_attempt $qa,
-            question_display_options $options, $index, question_automatically_gradable $subq) {
+            question_display_options $options, $index, question_graded_automatically $subq) {
 
         $subtype = $subq->qtype->name();
         if ($subtype == 'numerical' || $subtype == 'shortanswer') {
@@ -120,11 +99,6 @@ class qtype_multianswer_renderer extends qtype_renderer {
                     $subrenderer = 'multichoice_vertical';
                 }
             }
-        } else if ($subtype == 'subquestion_replacement') {
-            return html_writer::div(
-                get_string('missingsubquestion', 'qtype_multianswer'),
-                'notifyproblem'
-            );
         } else {
             throw new coding_exception('Unexpected subquestion type.', $subq);
         }
@@ -235,11 +209,11 @@ class qtype_multianswer_textfield_renderer extends qtype_multianswer_subq_render
         }
 
         // Work out a good input field size.
-        $size = max(1, core_text::strlen(trim($response ?? '')) + 1);
+        $size = max(1, core_text::strlen(trim($response)) + 1);
         foreach ($subq->answers as $ans) {
             $size = max($size, core_text::strlen(trim($ans->answer)));
         }
-        $size = min(60, round($size + rand(0, (int)($size * 0.15))));
+        $size = min(60, round($size + rand(0, $size * 0.15)));
         // The rand bit is to make guessing harder.
 
         $inputattributes = array(
@@ -325,7 +299,7 @@ class qtype_multianswer_multichoice_inline_renderer
             $feedbackimg = $this->feedback_image($matchinganswer->fraction);
         }
         $select = html_writer::select($choices, $qa->get_qt_field_name($fieldname),
-                $response, array('' => '&nbsp;'), $inputattributes);
+                $response, array('' => ''), $inputattributes);
 
         $order = $subq->get_order($qa);
         $correctresponses = $subq->get_correct_response();

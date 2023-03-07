@@ -120,14 +120,7 @@ class gradingform_rubric_renderer extends plugin_renderer_base {
 
         // Levels table.
         $levelsrowparams = array('id' => '{NAME}-criteria-{CRITERION-id}-levels');
-        // Add radiogroup role only when not previewing or editing.
-        $isradiogroup = !in_array($mode, [
-            gradingform_rubric_controller::DISPLAY_EDIT_FULL,
-            gradingform_rubric_controller::DISPLAY_EDIT_FROZEN,
-            gradingform_rubric_controller::DISPLAY_PREVIEW,
-            gradingform_rubric_controller::DISPLAY_PREVIEW_GRADED,
-        ]);
-        if ($isradiogroup) {
+        if ($mode != gradingform_rubric_controller::DISPLAY_EDIT_FULL) {
             $levelsrowparams['role'] = 'radiogroup';
         }
         $levelsrow = html_writer::tag('tr', $levelsstr, $levelsrowparams);
@@ -232,10 +225,10 @@ class gradingform_rubric_renderer extends plugin_renderer_base {
         // Template for one level within one criterion
         $tdattributes = array(
             'id' => '{NAME}-criteria-{CRITERION-id}-levels-{LEVEL-id}',
-            'class' => 'text-break level' . $level['class']
+            'class' => 'level' . $level['class']
         );
         if (isset($level['tdwidth'])) {
-            $tdattributes['style'] = "width: " . round($level['tdwidth']).'%;';
+            $tdattributes['width'] = round($level['tdwidth']).'%';
         }
 
         $leveltemplate = html_writer::start_tag('div', array('class' => 'level-wrapper'));
@@ -326,7 +319,7 @@ class gradingform_rubric_renderer extends plugin_renderer_base {
             $displayscore = false;
         }
         if ($displayscore) {
-            $scoreclass = 'score d-inline';
+            $scoreclass = 'score';
             if (isset($level['error_score'])) {
                 $scoreclass .= ' error';
             }

@@ -16,7 +16,7 @@
 /**
  * Module to navigation between users in a course.
  *
- * @module report_competency/user_course_navigation
+ * @package    report_competency
  * @copyright  2015 Damyon Wiese
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,7 +26,6 @@ define(['jquery'], function($) {
     /**
      * UserCourseNavigation
      *
-     * @class report_competency/user_course_navigation
      * @param {String} userSelector The selector of the user element.
      * @param {String} moduleSelector The selector of the module element.
      * @param {String} baseUrl The base url for the page (no params).
@@ -51,8 +50,6 @@ define(['jquery'], function($) {
      * @param {Event} e the event
      */
     UserCourseNavigation.prototype._userChanged = function(e) {
-        // Note: This change causes a page reload and is intentionally not paired with a js_complete call.
-        M.util.js_pending('report_competency/user_course_navigation:_userChanged');
         var newUserId = $(e.target).val();
         var queryStr = '?user=' + newUserId + '&id=' + this._courseId + '&mod=' + this._moduleId;
         document.location = this._baseUrl + queryStr;
@@ -65,21 +62,20 @@ define(['jquery'], function($) {
      * @param {Event} e the event
      */
     UserCourseNavigation.prototype._moduleChanged = function(e) {
-        // Note: This change causes a page reload and is intentionally not paired with a js_complete call.
-        M.util.js_pending('report_competency/user_course_navigation:_moduleChanged');
         var newModuleId = $(e.target).val();
         var queryStr = '?mod=' + newModuleId + '&id=' + this._courseId + '&user=' + this._userId;
         document.location = this._baseUrl + queryStr;
     };
 
-    /** @property {Number} The id of the user. */
+    /** @type {Number} The id of the user. */
     UserCourseNavigation.prototype._userId = null;
-    /** @property {Number} The id of the module. */
+    /** @type {Number} The id of the module. */
     UserCourseNavigation.prototype._moduleId = null;
-    /** @property {Number} The id of the course. */
+    /** @type {Number} The id of the course. */
     UserCourseNavigation.prototype._courseId = null;
-    /** @property {String} Plugin base url. */
+    /** @type {String} Plugin base url. */
     UserCourseNavigation.prototype._baseUrl = null;
 
-    return UserCourseNavigation;
+    return /** @alias module:report_competency/user_course_navigation */ UserCourseNavigation;
+
 });

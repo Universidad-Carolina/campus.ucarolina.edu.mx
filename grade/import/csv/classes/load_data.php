@@ -240,10 +240,6 @@ class gradeimport_csv_load_data {
                 $select = "{$field} = :{$field}";
             }
 
-            // Validate if the user id value is numerical.
-            if ($field === 'id' && !is_numeric($value)) {
-                $errorkey = 'usermappingerror';
-            }
             // Make sure the record exists and that there's only one matching record found.
             $user = $DB->get_record_select('user', $select, array($userfields['field'] => $value), '*', MUST_EXIST);
         } catch (dml_missing_record_exception $missingex) {
@@ -403,7 +399,10 @@ class gradeimport_csv_load_data {
             case 'useridnumber':
             case 'useremail':
             case 'username':
-                $this->studentid = $this->check_user_exists($value, $userfields[$mappingidentifier]);
+                // Skip invalid row with blank user field.
+                if (!empty($value)) {
+                    $this->studentid = $this->check_user_exists($value, $userfields[$mappingidentifier]);
+                }
             break;
             case 'new':
                 $this->import_new_grade_item($header, $key, $value);
@@ -480,7 +479,7 @@ class gradeimport_csv_load_data {
                     $maperrors[$j] = true;
                 } else {
                     // Collision.
-                    throw new \moodle_exception('cannotmapfield', '', '', $j);
+                    print_error('cannotmapfield', '', '', $j);
                 }
             }
         }

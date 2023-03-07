@@ -14,24 +14,31 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core_calendar;
+/**
+ * std_proxy tests.
+ *
+ * @package    core_calendar
+ * @copyright  2017 Cameron Ball <cameron@cameron1729.xyz>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
 
 use core_calendar\local\event\proxies\std_proxy;
 
 /**
  * std_proxy testcase.
  *
- * @package core_calendar
  * @copyright 2017 Cameron Ball <cameron@cameron1729.xyz>
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class std_proxy_test extends \advanced_testcase {
+class core_calendar_std_proxy_testcase extends advanced_testcase {
     /**
      * @var \stdClass[] $objects Array of objects to proxy.
      */
     public $objects;
 
-    public function setUp(): void {
+    public function setUp() {
         $this->objects = [
             1 => (object) [
                 'member1' => 'Hello',
@@ -49,7 +56,7 @@ class std_proxy_test extends \advanced_testcase {
     /**
      * Test proxying.
      *
-     * @dataProvider proxy_testcases
+     * @dataProvider test_proxy_testcases()
      * @param int    $id       Object ID.
      * @param string $member   Object member to retrieve.
      * @param mixed  $expected Expected value of member.
@@ -65,7 +72,7 @@ class std_proxy_test extends \advanced_testcase {
     /**
      * Test setting values with a base class.
      *
-     * @dataProvider proxy_testcases
+     * @dataProvider test_proxy_testcases()
      * @param int    $id          Object ID.
      * @param string $member      Object member to retrieve.
      * @param mixed  $storedvalue Value as would be stored externally.
@@ -86,7 +93,7 @@ class std_proxy_test extends \advanced_testcase {
     /**
      * Test getting a non existant member.
      *
-     * @dataProvider get_set_testcases
+     * @dataProvider test_get_set_testcases()
      * @param int $id ID of the object being proxied.
      */
     public function test_get_invalid_member($id) {
@@ -101,7 +108,7 @@ class std_proxy_test extends \advanced_testcase {
     /**
      * Test get proxied instance.
      *
-     * @dataProvider get_set_testcases
+     * @dataProvider test_get_set_testcases()
      * @param int $id Object ID.
      */
     public function test_get_proxied_instance($id) {
@@ -115,7 +122,7 @@ class std_proxy_test extends \advanced_testcase {
     /**
      * Test cases for proxying test.
      */
-    public function proxy_testcases() {
+    public function test_proxy_testcases() {
         return [
             'Object 1 member 1' => [
                 1,
@@ -153,7 +160,7 @@ class std_proxy_test extends \advanced_testcase {
     /**
      * Test cases for getting and setting tests.
      */
-    public function get_set_testcases() {
+    public function test_get_set_testcases() {
         return [
             'Object 1' => [1],
             'Object 2' => [5]

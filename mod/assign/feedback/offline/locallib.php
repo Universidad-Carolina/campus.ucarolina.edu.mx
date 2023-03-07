@@ -25,8 +25,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-use \mod_assign\output\assign_header;
-
 require_once($CFG->dirroot.'/grade/grading/lib.php');
 
 /**
@@ -119,7 +117,7 @@ class assign_feedback_offline extends assign_feedback_plugin {
                                                                      'plugin'=>'offline',
                                                                      'pluginaction'=>'uploadgrades',
                                                                      'id' => $this->assignment->get_course_module()->id));
-            throw new \moodle_exception('invalidgradeimport', 'assignfeedback_offline', $thisurl);
+            print_error('invalidgradeimport', 'assignfeedback_offline', $thisurl);
             return;
         }
         // Does this assignment use a scale?
@@ -133,8 +131,7 @@ class assign_feedback_offline extends assign_feedback_plugin {
         $adminconfig = $this->assignment->get_admin_config();
         $gradebookplugin = $adminconfig->feedback_plugin_for_gradebook;
 
-        $updategradecount = 0;
-        $updatefeedbackcount = 0;
+        $updatecount = 0;
         while ($record = $gradeimporter->next()) {
             $user = $record->user;
             $modified = $record->modified;
@@ -182,7 +179,7 @@ class assign_feedback_offline extends assign_feedback_plugin {
                 $grade->grader = $USER->id;
                 if ($this->assignment->update_grade($grade)) {
                     $this->assignment->notify_grade_modified($grade);
-                    $updategradecount += 1;
+                    $updatecount += 1;
                 }
             }
 
@@ -200,7 +197,7 @@ class assign_feedback_offline extends assign_feedback_plugin {
                         }
                     }
                     if ($newvalue != $oldvalue) {
-                        $updatefeedbackcount += 1;
+                        $updatecount += 1;
                         $grade = $this->assignment->get_user_grade($record->user->id, true);
                         $this->assignment->notify_grade_modified($grade);
                         $plugin->set_editor_text($field, $newvalue, $grade->id);
@@ -225,11 +222,7 @@ class assign_feedback_offline extends assign_feedback_plugin {
                                                   false,
                                                   $this->assignment->get_course_module()->id,
                                                   get_string('importgrades', 'assignfeedback_offline')));
-        $strparams = [
-            'gradeupdatescount' => $updategradecount,
-            'feedbackupdatescount' => $updatefeedbackcount,
-        ];
-        $o .= $renderer->box(get_string('updatedgrades', 'assignfeedback_offline', $strparams));
+        $o .= $renderer->box(get_string('updatedgrades', 'assignfeedback_offline', $updatecount));
         $url = new moodle_url('view.php',
                               array('id'=>$this->assignment->get_course_module()->id,
                                     'action'=>'grading'));

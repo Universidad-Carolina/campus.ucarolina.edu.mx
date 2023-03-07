@@ -18,12 +18,10 @@
  * Unit tests for (some of) /question/engine/statistics.php
  *
  * @package   quiz_statistics
- * @category  test
+ * @category  phpunit
  * @copyright 2008 Jamie Pratt
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-namespace quiz_statistics;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -57,7 +55,7 @@ class testable_question_statistics extends \core_question\statistics\questions\c
      */
     protected $lateststeps;
 
-    protected $statscollectionclassname = '\quiz_statistics\testable_all_calculated_for_qubaid_condition';
+    protected $statscollectionclassname = 'testable_all_calculated_for_qubaid_condition';
 
     public function set_step_data($states) {
         $this->lateststeps = $states;
@@ -101,7 +99,7 @@ class testable_question_statistics extends \core_question\statistics\questions\c
  * @copyright 2008 Jamie Pratt
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class statistics_test extends \basic_testcase {
+class quiz_statistics_question_stats_testcase extends basic_testcase {
     /** @var testable_all_calculated_for_qubaid_condition object created to test class. */
     protected $qstats;
 
@@ -146,7 +144,7 @@ class statistics_test extends \basic_testcase {
         foreach ($this->qstats->get_all_slots() as $slot) {
             $value = array_shift($values);
             if ($value !== null) {
-                $this->assertEqualsWithDelta($value, $this->qstats->for_slot($slot)->{$fieldname} * $multiplier, 1E-6);
+                $this->assertEquals($value, $this->qstats->for_slot($slot)->{$fieldname} * $multiplier, '', 1E-6);
             } else {
                 $this->assertEquals($value, $this->qstats->for_slot($slot)->{$fieldname} * $multiplier);
             }
@@ -183,7 +181,7 @@ class statistics_test extends \basic_testcase {
         while (null !== ($line = array_shift($filecontents))) {
             $data = $this->get_fields_from_csv($line);
             $arraykey = reset($data);
-            $object = new \stdClass();
+            $object = new stdClass();
             foreach ($keys as $key) {
                 $value = array_shift($data);
                 if ($value !== null) {

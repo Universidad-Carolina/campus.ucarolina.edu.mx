@@ -24,8 +24,6 @@
 
 namespace report_insights\output;
 
-use core_analytics\prediction;
-
 defined('MOODLE_INTERNAL') || die();
 
 /**
@@ -66,7 +64,7 @@ class insight implements \renderable, \templatable {
      * @param \context $context
      * @return void
      */
-    public function __construct(\core_analytics\prediction $prediction, \core_analytics\model $model, $includedetailsaction,
+    public function __construct(\core_analytics\prediction $prediction, \core_analytics\model $model, $includedetailsaction = false,
             \context $context) {
 
         $this->prediction = $prediction;
@@ -175,34 +173,25 @@ class insight implements \renderable, \templatable {
             );
         }
 
-        // This is only rendered in report_insights/insight_details template for predictions with no action.
-        // We need it to automatically enable the bulk action buttons in report/insights/prediction.php.
-        $filtered = [
-            \core_analytics\prediction::ACTION_FIXED,
-            \core_analytics\prediction::ACTION_NOT_USEFUL,
-            \core_analytics\prediction::ACTION_USEFUL,
-            \core_analytics\prediction::ACTION_NOT_APPLICABLE,
-            \core_analytics\prediction::ACTION_INCORRECTLY_FLAGGED,
-        ];
-        if (!$this->prediction->get_executed_actions($filtered)) {
-            $toggleall = new \core\output\checkbox_toggleall('insight-bulk-action-' . $predictedvalue, true, [
-                'id' => 'id-toggle-all-' . $predictedvalue,
-                'name' => 'toggle-all-' . $predictedvalue,
-                'classes' => 'hidden',
-                'label' => get_string('selectall'),
-                'labelclasses' => 'sr-only',
-                'checked' => false,
-            ]);
-            $data->hiddencheckboxtoggleall = $output->render($toggleall);
+        // This is only rendered in report_insights/insight_details template. We need it to automatically enable
+        // the bulk action buttons in report/insights/prediction.php.
+        $toggleall = new \core\output\checkbox_toggleall('insight-bulk-action-' . $predictedvalue, true, [
+            'id' => 'id-toggle-all-' . $predictedvalue,
+            'name' => 'toggle-all-' . $predictedvalue,
+            'classes' => 'hidden',
+            'label' => get_string('selectall'),
+            'labelclasses' => 'sr-only',
+            'checked' => false
+        ]);
+        $data->hiddencheckboxtoggleall = $output->render($toggleall);
 
-            $toggle = new \core\output\checkbox_toggleall('insight-bulk-action-' . $predictedvalue, false, [
-                'id' => 'id-select-' . $data->predictionid,
-                'name' => 'select-' . $data->predictionid,
-                'label' => get_string('selectprediction', 'report_insights', $data->sampledescription),
-                'labelclasses' => 'accesshide',
-            ]);
-            $data->toggleslave = $output->render($toggle);
-        }
+        $toggle = new \core\output\checkbox_toggleall('insight-bulk-action-' . $predictedvalue, false, [
+            'id' => 'id-select-' . $data->predictionid,
+            'name' => 'select-' . $data->predictionid,
+            'label' => get_string('selectprediction', 'report_insights', $data->sampledescription),
+            'labelclasses' => 'accesshide',
+        ]);
+        $data->toggleslave = $output->render($toggle);
 
         return $data;
     }

@@ -33,13 +33,13 @@ Feature: In a lesson activity, a non editing teacher can grade essay questions
       | student1 | G1 |
       | student2 | G2 |
       | student3 | G3 |
-    And the following "activities" exist:
-      | activity | name             | course | idnumber |
-      | lesson   | Test lesson name | C1     | lesson1  |
-    And I am on the "Test lesson name" "lesson activity editing" page logged in as teacher1
-    And I set the following fields to these values:
+    And I log in as "teacher1"
+    And I am on "Course 1" course homepage with editing mode on
+    And I add a "Lesson" to section "1" and I fill the form with:
+      | Name | Test lesson name |
+      | Description | Test lesson description |
       | Group mode | Separate groups |
-    And I press "Save and display"
+    And I follow "Test lesson name"
     And I follow "Add a question page"
     And I set the field "Select a question type" to "Essay"
     And I press "Add a question page"
@@ -47,15 +47,24 @@ Feature: In a lesson activity, a non editing teacher can grade essay questions
       | Page title | Essay question |
       | Page contents | <p>Please write a story about a frog.</p> |
     And I press "Save page"
-    And I am on the "Test lesson name" "lesson activity" page logged in as student1
+    And I log out
+    And I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I follow "Test lesson name"
     And I set the field "Your answer" to "<p>Once upon a time there was a little green frog."
     And I press "Submit"
-    And I am on the "Test lesson name" "lesson activity" page logged in as student2
+    And I log out
+    And I log in as "student2"
+    And I am on "Course 1" course homepage
+    And I follow "Test lesson name"
     And I set the field "Your answer" to "<p>Once upon a time there were two little green frogs."
     And I press "Submit"
-    When I am on the "Test lesson name" "lesson activity" page logged in as teacher1
+    And I log out
+    When I log in as "teacher1"
+    And I am on "Course 1" course homepage
+    And I follow "Test lesson name"
     Then I should see "Grade essays"
-    And I grade lesson essays
+    And I follow "Grade essays"
     And I should see "Student 1"
     And I should see "Student 2"
     And I should see "Essay question"
@@ -75,8 +84,11 @@ Feature: In a lesson activity, a non editing teacher can grade essay questions
     And I should not see "Student 1"
     And I select "Group C" from the "Separate groups" singleselect
     And I should see "No one in Group C has answered an essay question yet."
-    And I am on the "Test lesson name" "lesson activity" page logged in as teacher2
+    And I log out
+    And I log in as "teacher2"
+    And I am on "Course 1" course homepage
+    And I follow "Test lesson name"
     Then I should see "Grade essays"
-    And I grade lesson essays
+    And I follow "Grade essays"
     And I should not see "Student 1"
     And I should see "Student 2"

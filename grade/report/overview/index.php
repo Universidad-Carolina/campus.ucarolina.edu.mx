@@ -33,7 +33,7 @@ $userid   = optional_param('userid', $USER->id, PARAM_INT);
 $PAGE->set_url(new moodle_url('/grade/report/overview/index.php', array('id' => $courseid, 'userid' => $userid)));
 
 if (!$course = $DB->get_record('course', array('id' => $courseid))) {
-    throw new \moodle_exception('invalidcourseid');
+    print_error('invalidcourseid');
 }
 require_login(null, false);
 $PAGE->set_course($course);
@@ -52,7 +52,7 @@ if (empty($userid)) {
 
 } else {
     if (!$DB->get_record('user', array('id'=>$userid, 'deleted'=>0)) or isguestuser($userid)) {
-        throw new \moodle_exception('invaliduserid');
+        print_error('invaliduserid');
     }
     $personalcontext = context_user::instance($userid);
 }
@@ -75,7 +75,7 @@ $access = grade_report_overview::check_access($systemcontext, $context, $persona
 
 if (!$access) {
     // no access to grades!
-    throw new \moodle_exception('nopermissiontoviewgrades', 'error',  $CFG->wwwroot.'/course/view.php?id='.$courseid);
+    print_error('nopermissiontoviewgrades', 'error',  $CFG->wwwroot.'/course/view.php?id='.$courseid);
 }
 
 /// return tracking object
@@ -89,9 +89,6 @@ $USER->grade_last_report[$course->id] = 'overview';
 
 // First make sure we have proper final grades.
 grade_regrade_final_grades_if_required($course);
-
-$actionbar = new \core_grades\output\general_action_bar($context,
-    new moodle_url('/grade/report/overview/index.php', ['id' => $courseid]), 'report', 'overview');
 
 if (has_capability('moodle/grade:viewall', $context) && $courseid != SITEID) {
     // Please note this would be extremely slow if we wanted to implement this properly for all teachers.
@@ -113,8 +110,8 @@ if (has_capability('moodle/grade:viewall', $context) && $courseid != SITEID) {
     }
 
     if (empty($userid)) {
-        print_grade_page_head($courseid, 'report', 'overview', false, false, false,
-            true, null, null, null, $actionbar);
+        // Add tabs
+        print_grade_page_head($courseid, 'report', 'overview');
 
         groups_print_course_menu($course, $gpr->get_return_url('index.php?id='.$courseid, array('userid'=>0)));
 
@@ -127,8 +124,7 @@ if (has_capability('moodle/grade:viewall', $context) && $courseid != SITEID) {
     } else { // Only show one user's report
         $report = new grade_report_overview($userid, $gpr, $context);
         print_grade_page_head($courseid, 'report', 'overview', get_string('pluginname', 'gradereport_overview') .
-            ' - ' . fullname($report->user), false, false, true, null, null,
-            $report->user, $actionbar);
+                ' - ' . fullname($report->user), false, false, true, null, null, $report->user);
         groups_print_course_menu($course, $gpr->get_return_url('index.php?id='.$courseid, array('userid'=>0)));
 
         if ($user_selector) {
@@ -174,8 +170,7 @@ if (has_capability('moodle/grade:viewall', $context) && $courseid != SITEID) {
             }
         } else { // We have a course context. We must be navigating from the gradebook.
             print_grade_page_head($courseid, 'report', 'overview', get_string('pluginname', 'gradereport_overview')
-                . ' - ' . fullname($report->user), false, false, true, null, null,
-                $report->user, $actionbar);
+                    . ' - ' . fullname($report->user));
             if ($report->fill_table()) {
                 echo '<br />' . $report->print_table(true);
             }

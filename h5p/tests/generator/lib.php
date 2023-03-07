@@ -173,11 +173,10 @@ class core_h5p_generator extends \component_generator_base {
      */
     public function generate_h5p_data(bool $createlibraryfiles = false): stdClass {
         // Create libraries.
-        $mainlib = $libraries[] = $this->create_library_record('MainLibrary', 'Main Lib', 1, 0, 1, '', null,
-            'http://tutorial.org', 'http://example.org');
-        $lib1 = $libraries[] = $this->create_library_record('Library1', 'Lib1', 2, 0, 1, '', null, null,  'http://example.org');
-        $lib2 = $libraries[] = $this->create_library_record('Library2', 'Lib2', 2, 1, 1, '', null, 'http://tutorial.org');
-        $lib3 = $libraries[] = $this->create_library_record('Library3', 'Lib3', 3, 2, 1, '', null, null, null, true, 0);
+        $mainlib = $libraries[] = $this->create_library_record('MainLibrary', 'Main Lib', 1, 0);
+        $lib1 = $libraries[] = $this->create_library_record('Library1', 'Lib1', 2, 0);
+        $lib2 = $libraries[] = $this->create_library_record('Library2', 'Lib2', 2, 1);
+        $lib3 = $libraries[] = $this->create_library_record('Library3', 'Lib3', 3, 2);
         $lib4 = $libraries[] = $this->create_library_record('Library4', 'Lib4', 1, 1);
         $lib5 = $libraries[] = $this->create_library_record('Library5', 'Lib5', 1, 3);
 
@@ -249,34 +248,26 @@ class core_h5p_generator extends \component_generator_base {
      * @param int $patchversion The library's patch version
      * @param string $semantics Json describing the content structure for the library
      * @param string $addto The plugin configuration data
-     * @param string $tutorial The tutorial URL
-     * @param string $examlpe The example URL
-     * @param bool $enabled Whether the library is enabled or not
-     * @param int $runnable Whether the library is runnable (1) or not (0)
      * @return stdClass An object representing the added library record
      */
     public function create_library_record(string $machinename, string $title, int $majorversion = 1,
-            int $minorversion = 0, int $patchversion = 1, string $semantics = '', string $addto = null,
-            string $tutorial = null, string $example = null, bool $enabled = true, int $runnable = 1): stdClass {
+            int $minorversion = 0, int $patchversion = 1, string $semantics = '', string $addto = null): stdClass {
         global $DB;
 
-        $content = [
+        $content = array(
             'machinename' => $machinename,
             'title' => $title,
             'majorversion' => $majorversion,
             'minorversion' => $minorversion,
             'patchversion' => $patchversion,
-            'runnable' => $runnable,
+            'runnable' => 1,
             'fullscreen' => 1,
             'preloadedjs' => 'js/example.js',
             'preloadedcss' => 'css/example.css',
             'droplibrarycss' => '',
             'semantics' => $semantics,
-            'addto' => $addto,
-            'tutorial' => $tutorial,
-            'example' => $example,
-            'enabled' => $enabled,
-        ];
+            'addto' => $addto
+        );
 
         $libraryid = $DB->insert_record('h5p_libraries', $content);
 
@@ -423,8 +414,6 @@ class core_h5p_generator extends \component_generator_base {
      * @throws coding_exception
      */
     public function create_content_file(string $file, string $filearea, int $contentid = 0): stored_file {
-        global $USER;
-
         $filepath = '/'.dirname($file).'/';
         $filename = basename($file);
 
@@ -432,25 +421,15 @@ class core_h5p_generator extends \component_generator_base {
             throw new coding_exception('Files belonging to an H5P content must specify the H5P content id');
         }
 
-        if ($filearea === 'draft') {
-            $usercontext = \context_user::instance($USER->id);
-            $context = $usercontext->id;
-            $component = 'user';
-            $itemid = 0;
-        } else {
-            $systemcontext = context_system::instance();
-            $context = $systemcontext->id;
-            $component = \core_h5p\file_storage::COMPONENT;
-            $itemid = $contentid;
-        }
-
         $content = 'fake content';
 
+        $systemcontext = context_system::instance();
+
         $filerecord = array(
-            'contextid' => $context,
-            'component' => $component,
+            'contextid' => $systemcontext->id,
+            'component' => \core_h5p\file_storage::COMPONENT,
             'filearea'  => $filearea,
-            'itemid'    => $itemid,
+            'itemid'    => ($filearea === 'editor') ? 0 : $contentid,
             'filepath'  => $filepath,
             'filename'  => $filename,
         );

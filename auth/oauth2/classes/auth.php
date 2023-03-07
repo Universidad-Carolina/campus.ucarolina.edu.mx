@@ -167,23 +167,34 @@ class auth extends \auth_plugin_base {
     }
 
     /**
+     * Do some checks on the identity provider before showing it on the login page.
+     * @param core\oauth2\issuer $issuer
+     * @return boolean
+     */
+    private function is_ready_for_login_page(\core\oauth2\issuer $issuer) {
+        return $issuer->get('enabled') &&
+                $issuer->is_configured() &&
+                !empty($issuer->get('showonloginpage'));
+    }
+
+    /**
      * Return a list of identity providers to display on the login page.
      *
      * @param string|moodle_url $wantsurl The requested URL.
      * @return array List of arrays with keys url, iconurl and name.
      */
     public function loginpage_idp_list($wantsurl) {
-        $providers = \core\oauth2\api::get_all_issuers(true);
+        $providers = \core\oauth2\api::get_all_issuers();
         $result = [];
         if (empty($wantsurl)) {
             $wantsurl = '/';
         }
         foreach ($providers as $idp) {
-            if ($idp->is_available_for_login()) {
+            if ($this->is_ready_for_login_page($idp)) {
                 $params = ['id' => $idp->get('id'), 'wantsurl' => $wantsurl, 'sesskey' => sesskey()];
                 $url = new moodle_url('/auth/oauth2/login.php', $params);
                 $icon = $idp->get('image');
-                $result[] = ['url' => $url, 'iconurl' => $icon, 'name' => $idp->get_display_name()];
+                $result[] = ['url' => $url, 'iconurl' => $icon, 'name' => $idp->get('name')];
             }
         }
         return $result;
@@ -361,10 +372,10 @@ class auth extends \auth_plugin_base {
             if ($user->auth != $this->authtype) {
                 return AUTH_CONFIRM_ERROR;
 
-            } else if ($user->secret === $confirmsecret && $user->confirmed) {
+            } else if ($user->secret == $confirmsecret && $user->confirmed) {
                 return AUTH_CONFIRM_ALREADY;
 
-            } else if ($user->secret === $confirmsecret) {   // They have provided the secret key to get in.
+            } else if ($user->secret == $confirmsecret) {   // They have provided the secret key to get in.
                 $DB->set_field("user", "confirmed", 1, array("id" => $user->id));
                 return AUTH_CONFIRM_OK;
             }
@@ -398,7 +409,6 @@ class auth extends \auth_plugin_base {
     public function complete_login(client $client, $redirecturl) {
         global $CFG, $SESSION, $PAGE;
 
-        $rawuserinfo = $client->get_raw_userinfo();
         $userinfo = $client->get_userinfo();
 
         if (!$userinfo) {
@@ -445,9 +455,8 @@ class auth extends \auth_plugin_base {
             }
         }
 
-        $issuer = $client->get_issuer();
         // First we try and find a defined mapping.
-        $linkedlogin = api::match_username_to_user($userinfo['username'], $issuer);
+        $linkedlogin = api::match_username_to_user($userinfo['username'], $client->get_issuer());
 
         if (!empty($linkedlogin) && empty($linkedlogin->get('confirmtoken'))) {
             $mappeduser = get_complete_user_data('id', $linkedlogin->get('userid'));
@@ -465,7 +474,7 @@ class auth extends \auth_plugin_base {
                 $SESSION->loginerrormsg = get_string('invalidlogin');
                 $client->log_out();
                 redirect(new moodle_url('/login/index.php'));
-            } else if ($mappeduser && ($mappeduser->confirmed || !$issuer->get('requireconfirmation'))) {
+            } else if ($mappeduser && $mappeduser->confirmed) {
                 // Update user fields.
                 $userinfo = $this->update_user($userinfo, $mappeduser);
                 $userwasmapped = true;
@@ -494,7 +503,7 @@ class auth extends \auth_plugin_base {
             redirect(new moodle_url('/login/index.php'));
         }
 
-
+        $issuer = $client->get_issuer();
         if (!$issuer->is_valid_login_domain($oauthemail)) {
             // Trigger login failed event.
             $failurereason = AUTH_LOGIN_UNAUTHORISED;
@@ -599,11 +608,7 @@ class auth extends \auth_plugin_base {
         // We used to call authenticate_user - but that won't work if the current user has a different default authentication
         // method. Since we now ALWAYS link a login - if we get to here we can directly allow the user in.
         $user = (object) $userinfo;
-
-        // Add extra loggedin info.
-        $this->set_extrauserinfo((array)$rawuserinfo);
-
-        complete_user_login($user, $this->get_extrauserinfo());
+        complete_user_login($user);
         $this->update_picture($user);
         redirect($redirecturl);
     }

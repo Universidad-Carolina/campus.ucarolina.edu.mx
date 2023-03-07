@@ -40,7 +40,7 @@ $PAGE->set_pagelayout('admin');
 
 /// Make sure they can even access this course
 if (!$course = $DB->get_record('course', array('id' => $courseid))) {
-    throw new \moodle_exception('invalidcourseid');
+    print_error('invalidcourseid');
 }
 
 require_login($course);
@@ -63,7 +63,7 @@ if (empty($eid)) {
 
 } else {
     if (!$element = $gtree->locate_element($eid)) {
-        throw new \moodle_exception('invalidelementid', '', $returnurl);
+        print_error('invalidelementid', '', $returnurl);
     }
     $object = $element['object'];
 }
@@ -89,7 +89,7 @@ switch ($action) {
     case 'duplicate':
         if ($eid and confirm_sesskey()) {
             if (!$el = $gtree->locate_element($eid)) {
-                throw new \moodle_exception('invalidelementid', '', $returnurl);
+                print_error('invalidelementid', '', $returnurl);
             }
 
             $object->duplicate();
@@ -136,7 +136,7 @@ switch ($action) {
             $first = optional_param('first', false,  PARAM_BOOL); // If First is set to 1, it means the target is the first child of the category $moveafter
 
             if(!$after_el = $gtree->locate_element($moveafter)) {
-                throw new \moodle_exception('invalidelementid', '', $returnurl);
+                print_error('invalidelementid', '', $returnurl);
             }
 
             $after = $after_el['object'];
@@ -245,9 +245,7 @@ if (grade_regrade_final_grades_if_required($course, $grade_edit_tree_index_check
     $recreatetree = true;
 }
 
-$actionbar = new \core_grades\output\gradebook_setup_action_bar($context);
-print_grade_page_head($courseid, 'settings', 'setup', get_string('gradebooksetup', 'grades'),
-    false, false, true, null, null, null, $actionbar);
+print_grade_page_head($courseid, 'settings', 'setup', get_string('gradebooksetup', 'grades'));
 
 // Print Table of categories and items
 echo $OUTPUT->box_start('gradetreebox generalbox');
@@ -288,11 +286,26 @@ echo $OUTPUT->container_start('buttons mdl-align');
 
 if ($moving) {
     echo $OUTPUT->single_button(new moodle_url('index.php', array('id'=>$course->id)), get_string('cancel'), 'get');
+} else {
+    echo $OUTPUT->single_button(new moodle_url('item.php', array('courseid' => $course->id)), get_string('additem',
+        'grades'), 'get');
+    if (!empty($CFG->enableoutcomes)) {
+        echo $OUTPUT->single_button(new moodle_url('outcomeitem.php', array('courseid'=>$course->id)), get_string('addoutcomeitem', 'grades'), 'get');
+    }
+    echo $OUTPUT->single_button(new moodle_url('category.php', array('courseid' => $course->id)), get_string('addcategory',
+        'grades'), 'get');
+    //echo $OUTPUT->(new moodle_url('index.php', array('id'=>$course->id, 'action'=>'autosort')), get_string('autosort', 'grades'), 'get');
 }
 
 echo $OUTPUT->container_end();
 
-$PAGE->requires->js_call_amd('core_form/changechecker', 'watchFormById', ['gradetreeform']);
+$PAGE->requires->yui_module('moodle-core-formchangechecker',
+    'M.core_formchangechecker.init',
+    array(array(
+        'formid' => 'gradetreeform'
+    ))
+);
+$PAGE->requires->string_for_js('changesmadereallygoaway', 'moodle');
 
 echo $OUTPUT->footer();
 die;

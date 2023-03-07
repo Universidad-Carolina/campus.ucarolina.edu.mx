@@ -20,6 +20,8 @@
  * See template: mod_lti/tool_card
  *
  * @module     mod_lti/tool_card_controller
+ * @class      tool_card_controller
+ * @package    mod_lti
  * @copyright  2015 Ryan Wyllie <ryan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @since      3.1
@@ -482,7 +484,10 @@
             return toolTypeData;
         }).then(function(toolTypeData) {
             return templates.render('mod_lti/tool_card', toolTypeData);
-        }).then(function(html, js) {
+        }).then(function(renderResult) {
+            var html = renderResult[0];
+            var js = renderResult[1];
+
             templates.replaceNode(element, html, js);
             return;
         }).catch(function() {

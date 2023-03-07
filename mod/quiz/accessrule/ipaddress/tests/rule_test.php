@@ -14,10 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace quizaccess_ipaddress;
+/**
+ * Unit tests for the quizaccess_ipaddress plugin.
+ *
+ * @package    quizaccess
+ * @subpackage ipaddress
+ * @category   phpunit
+ * @copyright  2008 The Open University
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
-use quiz;
-use quizaccess_ipaddress;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -28,16 +34,14 @@ require_once($CFG->dirroot . '/mod/quiz/accessrule/ipaddress/rule.php');
 /**
  * Unit tests for the quizaccess_ipaddress plugin.
  *
- * @package    quizaccess_ipaddress
- * @category   test
  * @copyright  2008 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class rule_test extends \basic_testcase {
+class quizaccess_ipaddress_testcase extends basic_testcase {
     public function test_ipaddress_access_rule() {
-        $quiz = new \stdClass();
-        $attempt = new \stdClass();
-        $cm = new \stdClass();
+        $quiz = new stdClass();
+        $attempt = new stdClass();
+        $cm = new stdClass();
         $cm->id = 0;
 
         // Test the allowed case by getting the user's IP address. However, this

@@ -71,7 +71,6 @@ $starredonly = optional_param('starredonly', false, PARAM_BOOL); // Include only
 
 $PAGE->set_pagelayout('standard');
 $PAGE->set_url($FULLME); //TODO: this is very sloppy --skodak
-$PAGE->set_secondary_active_tab("coursehome");
 
 if (empty($search)) {   // Check the other parameters instead
     if (!empty($words)) {
@@ -120,7 +119,7 @@ if ($search) {
 }
 
 if (!$course = $DB->get_record('course', array('id'=>$id))) {
-    throw new \moodle_exception('invalidcourseid');
+    print_error('invalidcourseid');
 }
 
 require_course_login($course);
@@ -140,10 +139,8 @@ $strpage = get_string("page");
 
 if (!$search || $showform) {
 
-    $url = new moodle_url('/mod/forum/index.php', array('id' => $course->id));
-    $PAGE->navbar->add($strforums, $url);
-    $url = new moodle_url('/mod/forum/search.php', array('id' => $course->id));
-    $PAGE->navbar->add(get_string('advancedsearch', 'forum'), $url);
+    $PAGE->navbar->add($strforums, new moodle_url('/mod/forum/index.php', array('id'=>$course->id)));
+    $PAGE->navbar->add(get_string('advancedsearch', 'forum'));
 
     $PAGE->set_title($strsearch);
     $PAGE->set_heading($course->fullname);
@@ -167,9 +164,7 @@ if (!$posts = forum_search_posts($searchterms, $course->id, $page*$perpage, $per
     $PAGE->set_title($strsearchresults);
     $PAGE->set_heading($course->fullname);
     echo $OUTPUT->header();
-    if (!$PAGE->has_secondary_navigation()) {
-        echo $OUTPUT->heading($strforums, 2);
-    }
+    echo $OUTPUT->heading($strforums, 2);
     echo $OUTPUT->heading($strsearchresults, 3);
     echo $OUTPUT->heading(get_string("noposts", "forum"), 4);
 
@@ -196,7 +191,7 @@ $rm = new rating_manager();
 
 $PAGE->set_title($strsearchresults);
 $PAGE->set_heading($course->fullname);
-$PAGE->add_header_action($searchform);
+$PAGE->set_button($searchform);
 echo $OUTPUT->header();
 echo '<div class="reportlink">';
 
@@ -224,7 +219,6 @@ echo html_writer::link($url, get_string('advancedsearch', 'forum').'...');
 echo '</div>';
 
 echo $OUTPUT->heading($strforums, 2);
-
 echo $OUTPUT->heading("$strsearchresults: $totalcount", 3);
 
 $url = new moodle_url('search.php', array('search' => $search, 'id' => $course->id, 'perpage' => $perpage));
@@ -284,12 +278,12 @@ foreach ($posts as $post) {
     // Replace the simple subject with the three items forum name -> thread name -> subject
     // (if all three are appropriate) each as a link.
     if (!isset($discussionsbyid[$post->discussion])) {
-        throw new \moodle_exception('invaliddiscussionid', 'forum');
+        print_error('invaliddiscussionid', 'forum');
     }
 
     $discussion = $discussionsbyid[$post->discussion];
     if (!isset($forumsbyid[$discussion->get_forum_id()])) {
-        throw new \moodle_exception('invalidforumid', 'forum');
+        print_error('invalidforumid', 'forum');
     }
 
     $forum = $forumsbyid[$discussion->get_forum_id()];

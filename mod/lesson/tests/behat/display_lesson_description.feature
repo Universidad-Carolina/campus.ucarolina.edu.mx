@@ -14,26 +14,23 @@ Feature: Display the lesson description in the lesson and optionally in the cour
     And the following "course enrolments" exist:
       | user | course | role |
       | teacher1 | C1 | editingteacher |
-    Given the following "activity" exists:
-      | activity | lesson                  |
-      | course   | C1                      |
-      | idnumber | 0001                    |
-      | name     | Test lesson name        |
-      | intro    | Test lesson description |
-    And I am on the "Test lesson name" "lesson activity" page logged in as teacher1
-    And I follow "Add a content page"
+    And I log in as "teacher1"
+    And I am on "Course 1" course homepage with editing mode on
+    And I add a "Lesson" to section "1"
     And I set the following fields to these values:
-      | Page title  | Test lesson part 1        |
-      | Description | Lesson part 1 description |
-      | Jump        | Next page                 |
-    And I click on "Save page" "button"
+      | Name | Test lesson |
+      | Description | Test lesson description |
+    And I click on "Save and display" "button"
 
   Scenario: Description is displayed in the Lesson
-    When I am on the "Test lesson name" "lesson activity" page
+    Given I am on "Course 1" course homepage
+    When I follow "Test lesson"
     Then I should see "Test lesson description"
 
   Scenario: Show lesson description in the course homepage
-    Given I am on the "Test lesson name" "lesson activity editing" page
+    Given I am on "Course 1" course homepage
+    And I follow "Test lesson"
+    And I navigate to "Edit settings" in current page administration
     And the following fields match these values:
       | Display description on course page | |
     And I set the following fields to these values:
@@ -43,7 +40,9 @@ Feature: Display the lesson description in the lesson and optionally in the cour
     Then I should see "Test lesson description"
 
   Scenario: Hide lesson description in the course homepage
-    Given I am on the "Test lesson name" "lesson activity editing" page
+    Given I am on "Course 1" course homepage
+    And I follow "Test lesson"
+    And I navigate to "Edit settings" in current page administration
     And the following fields match these values:
       | Display description on course page | |
     And I press "Save and return to course"

@@ -13,24 +13,24 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-
-namespace filter_mathjaxloader;
-
-use filter_mathjaxloader;
-
+/**
+ * Provides the {@link filter_mathjaxloader_filtermath_testcase} class.
+ *
+ * @package     filter_mathjaxloader
+ * @category    test
+ * @copyright   2018 Markku Riekkinen
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->dirroot.'/filter/mathjaxloader/filter.php');
-
 /**
  * Unit tests for the MathJax loader filter.
  *
- * @package   filter_mathjaxloader
- * @category  test
  * @copyright 2018 Markku Riekkinen
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class filtermath_test extends \advanced_testcase {
+class filter_mathjaxloader_filtermath_testcase extends advanced_testcase {
 
     /**
      * Test the functionality of {@link filter_mathjaxloader::filter()}.
@@ -38,10 +38,10 @@ class filtermath_test extends \advanced_testcase {
      * @param string $inputtext The text given by the user.
      * @param string $expected The expected output after filtering.
      *
-     * @dataProvider math_filtering_inputs
+     * @dataProvider test_math_filtering_inputs
      */
     public function test_math_filtering($inputtext, $expected) {
-        $filter = new filter_mathjaxloader(\context_system::instance(), []);
+        $filter = new filter_mathjaxloader(context_system::instance(), []);
         $this->assertEquals($expected, $filter->filter($inputtext));
     }
 
@@ -50,7 +50,7 @@ class filtermath_test extends \advanced_testcase {
      *
      * @return array of [inputtext, expectedoutput] tuples.
      */
-    public function math_filtering_inputs() {
+    public function test_math_filtering_inputs() {
         return [
             // One inline formula.
             ['Some inline math \\( y = x^2 \\).',

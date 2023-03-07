@@ -16,13 +16,14 @@ Feature: An incorrect response to an answer with multiple attempts show appropri
       | user | course | role |
       | teacher1 | C1 | editingteacher |
       | student1 | C1 | student |
-    And the following "activities" exist:
-      | activity   | name               | course | idnumber |
-      | lesson     | Test lesson name   | C1     | lesson1  |
-    And I am on the "Test lesson name" "lesson activity editing" page logged in as teacher1
+    And I log in as "teacher1"
+    And I am on "Course 1" course homepage with editing mode on
+    And I add a "Lesson" to section "1"
     And I set the following fields to these values:
+      | Name | Test lesson name |
+      | Description | Test lesson description |
       | Provide option to try a question again | Yes |
-      | Maximum number of attempts per question | 2 |
+      | Maximum number of attempts | 2 |
     And I press "Save and display"
 
   Scenario: A student answering incorrectly to a question will see an option to move to the next question if set up.
@@ -44,7 +45,10 @@ Feature: An incorrect response to an answer with multiple attempts show appropri
       | id_answer_editor_0 | End this lesson |
       | id_jumpto_0 | End of lesson |
     And I press "Save page"
-    And I am on the "Test lesson name" "lesson activity" page logged in as student1
+    And I log out
+    And I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I follow "Test lesson name"
     When I set the field "Your answer" to "2"
     And I press "Submit"
     And I should see "That's the wrong answer"
@@ -69,7 +73,10 @@ Feature: An incorrect response to an answer with multiple attempts show appropri
       | id_answer_editor_0 | End this lesson |
       | id_jumpto_0 | End of lesson |
     And I press "Save page"
-    And I am on the "Test lesson name" "lesson activity" page logged in as student1
+    And I log out
+    And I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I follow "Test lesson name"
     When I set the field "Your answer" to "2"
     And I press "Submit"
     And I should see "That's the wrong answer"

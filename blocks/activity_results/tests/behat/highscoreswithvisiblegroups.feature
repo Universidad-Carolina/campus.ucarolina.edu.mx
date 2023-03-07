@@ -1,4 +1,4 @@
-@block @block_activity_results @javascript
+@block @block_activity_results
 Feature: The activity results block displays student in visible groups scores
   In order to be display student scores
   As a user
@@ -41,16 +41,13 @@ Feature: The activity results block displays student in visible groups scores
       | student4 | G2 |
       | student5 | G3 |
       | student6 | G3 |
-    And the following "activities" exist:
-      | activity | name             | intro           | course | idnumber | section | assignsubmission_file_enabled |
-      | assign   | Test assignment  | Test assignment | C1     | assign1  | 1       | 0                             |
     And I log in as "teacher1"
     And I am on "Course 1" course homepage with editing mode on
-    And I am on the "Test assignment" "assign activity" page
-    And I navigate to "Settings" in current page administration
-    And I set the following fields to these values:
+    And I add a "Assignment" to section "1" and I fill the form with:
+      | Assignment name | Test assignment |
+      | Description | Offline text |
+      | assignsubmission_file_enabled | 0 |
       | Group mode | Visible groups |
-    And I press "Save and return to course"
     And I am on "Course 1" course homepage
     And I navigate to "View > Grader report" in the course gradebook
     And I turn editing mode on
@@ -67,12 +64,12 @@ Feature: The activity results block displays student in visible groups scores
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 1 |
-      | config_showworst | 0 |
-      | config_gradeformat | Percentages |
-      | config_nameformat | Display full names |
-      | config_decimalpoints | 0 |
-      | config_usegroups | Yes |
+      | id_config_showbest | 1 |
+      | id_config_showworst | 0 |
+      | id_config_gradeformat | Percentages |
+      | id_config_nameformat | Display full names |
+      | id_config_decimalpoints | 0 |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     Then I should see "Group 1" in the "Activity results" "block"
     And I should see "95%" in the "Activity results" "block"
@@ -81,11 +78,11 @@ Feature: The activity results block displays student in visible groups scores
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 1 |
-      | config_showworst | 0 |
-      | config_gradeformat | Fractions |
-      | config_nameformat | Display full names |
-      | config_usegroups | Yes |
+      | id_config_showbest | 1 |
+      | id_config_showworst | 0 |
+      | id_config_gradeformat | Fractions |
+      | id_config_nameformat | Display full names |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"
@@ -97,11 +94,11 @@ Feature: The activity results block displays student in visible groups scores
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 1 |
-      | config_showworst | 0 |
-      | config_gradeformat | Absolute numbers |
-      | config_nameformat | Display full names |
-      | config_usegroups | Yes |
+      | id_config_showbest | 1 |
+      | id_config_showworst | 0 |
+      | id_config_gradeformat | Absolute numbers |
+      | id_config_nameformat | Display full names |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"
@@ -113,12 +110,12 @@ Feature: The activity results block displays student in visible groups scores
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 3 |
-      | config_showworst | 0 |
-      | config_gradeformat | Percentages |
-      | config_nameformat | Display full names |
-      | config_decimalpoints | 0 |
-      | config_usegroups | Yes |
+      | id_config_showbest | 3 |
+      | id_config_showworst | 0 |
+      | id_config_gradeformat | Percentages |
+      | id_config_nameformat | Display full names |
+      | id_config_decimalpoints | 0 |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"
@@ -134,11 +131,11 @@ Feature: The activity results block displays student in visible groups scores
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 3 |
-      | config_showworst | 0 |
-      | config_gradeformat | Fractions |
-      | config_nameformat | Display full names |
-      | config_usegroups | Yes |
+      | id_config_showbest | 3 |
+      | id_config_showworst | 0 |
+      | id_config_gradeformat | Fractions |
+      | id_config_nameformat | Display full names |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"
@@ -154,11 +151,11 @@ Feature: The activity results block displays student in visible groups scores
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 3 |
-      | config_showworst | 0 |
-      | config_gradeformat | Absolute numbers |
-      | config_nameformat | Display full names |
-      | config_usegroups | Yes |
+      | id_config_showbest | 3 |
+      | id_config_showworst | 0 |
+      | id_config_gradeformat | Absolute numbers |
+      | id_config_nameformat | Display full names |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"
@@ -171,16 +168,14 @@ Feature: The activity results block displays student in visible groups scores
     And I should see "75.00" in the "Activity results" "block"
 
   Scenario: Try to configure the block on the course page to show multiple high scores using ID numbers
-    Given the following config values are set as admin:
-      | showuseridentity | idnumber,email |
-    And I add the "Activity results" block
+    Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 3 |
-      | config_showworst | 0 |
-      | config_gradeformat | Percentages |
-      | config_nameformat | Display only ID numbers |
-      | config_usegroups | Yes |
+      | id_config_showbest | 3 |
+      | id_config_showworst | 0 |
+      | id_config_gradeformat | Percentages |
+      | id_config_nameformat | Display only ID numbers |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"
@@ -194,11 +189,11 @@ Feature: The activity results block displays student in visible groups scores
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 3 |
-      | config_showworst | 0 |
-      | config_gradeformat | Percentages |
-      | config_nameformat | Anonymous results |
-      | config_usegroups | Yes |
+      | id_config_showbest | 3 |
+      | id_config_showworst | 0 |
+      | id_config_gradeformat | Percentages |
+      | id_config_nameformat | Anonymous results |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"

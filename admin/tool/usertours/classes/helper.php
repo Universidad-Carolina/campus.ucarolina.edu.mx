@@ -24,9 +24,6 @@
 
 namespace tool_usertours;
 
-use core\output\inplace_editable;
-use tool_usertours\local\clientside_filter\clientside_filter;
-
 defined('MOODLE_INTERNAL') || die();
 
 /**
@@ -51,11 +48,6 @@ class helper {
      * @var boolean Has it been bootstrapped?
      */
     private static $bootstrapped = false;
-
-    /**
-     * @var string Regex to check any matching lang string.
-     */
-    protected const LANG_STRING_REGEX = '|^([a-zA-Z][a-zA-Z0-9\.:/_-]*),([a-zA-Z][a-zA-Z0-9\.:/_-]*)$|';
 
     /**
      * Get the link to edit the step.
@@ -308,19 +300,18 @@ class helper {
     /**
      * Render the inplace editable used to edit the tour name.
      *
-     * @param tour $tour The tour to edit.
-     * @return inplace_editable
+     * @param   tour        $tour       The tour to edit.
+     * @return  string
      */
-    public static function render_tourname_inplace_editable(tour $tour): inplace_editable {
-        $name = format_text(static::get_string_from_input($tour->get_name()), FORMAT_HTML);
-        return new inplace_editable(
+    public static function render_tourname_inplace_editable(tour $tour) {
+        return new \core\output\inplace_editable(
                 'tool_usertours',
                 'tourname',
                 $tour->get_id(),
                 true,
                 \html_writer::link(
                     $tour->get_view_link(),
-                    $name
+                    $tour->get_name()
                 ),
                 $tour->get_name()
             );
@@ -329,17 +320,16 @@ class helper {
     /**
      * Render the inplace editable used to edit the tour description.
      *
-     * @param tour $tour The tour to edit.
-     * @return inplace_editable
+     * @param   tour        $tour       The tour to edit.
+     * @return  string
      */
-    public static function render_tourdescription_inplace_editable(tour $tour): inplace_editable {
-        $description = format_text(static::get_string_from_input($tour->get_description()), FORMAT_HTML);
-        return new inplace_editable(
+    public static function render_tourdescription_inplace_editable(tour $tour) {
+        return new \core\output\inplace_editable(
                 'tool_usertours',
                 'tourdescription',
                 $tour->get_id(),
                 true,
-                $description,
+                $tour->get_description(),
                 $tour->get_description()
             );
     }
@@ -347,10 +337,10 @@ class helper {
     /**
      * Render the inplace editable used to edit the tour enable state.
      *
-     * @param tour $tour The tour to edit.
-     * @return inplace_editable
+     * @param   tour        $tour       The tour to edit.
+     * @return  string
      */
-    public static function render_tourenabled_inplace_editable(tour $tour): inplace_editable {
+    public static function render_tourenabled_inplace_editable(tour $tour) {
         global $OUTPUT;
 
         if ($tour->is_enabled()) {
@@ -363,7 +353,7 @@ class helper {
             $value = 0;
         }
 
-        $editable = new inplace_editable(
+        $editable = new \core\output\inplace_editable(
                 'tool_usertours',
                 'tourenabled',
                 $tour->get_id(),
@@ -381,13 +371,13 @@ class helper {
     /**
      * Render the inplace editable used to edit the step name.
      *
-     * @param step $step The step to edit.
-     * @return inplace_editable
+     * @param   step        $step       The step to edit.
+     * @return  string
      */
-    public static function render_stepname_inplace_editable(step $step): inplace_editable {
-        $title = format_text(static::get_string_from_input($step->get_title()), FORMAT_HTML);
+    public static function render_stepname_inplace_editable(step $step) {
+        $title = format_text(step::get_string_from_input($step->get_title()), FORMAT_HTML);
 
-        return new inplace_editable(
+        return new \core\output\inplace_editable(
                 'tool_usertours',
                 'stepname',
                 $step->get_id(),
@@ -420,7 +410,7 @@ class helper {
      * Get the specified tour.
      *
      * @param   int         $tourid     The tour that the step belongs to.
-     * @return  tour
+     * @return  stdClass
      */
     public static function get_tour($tourid) {
         return tour::instance($tourid);
@@ -476,7 +466,7 @@ class helper {
      * Get all of the steps in the tour.
      *
      * @param   int         $tourid     The tour that the step belongs to.
-     * @return  step[]
+     * @return  stdClass[]
      */
     public static function get_steps($tourid) {
         $steps = cache::get_stepdata($tourid);
@@ -533,28 +523,23 @@ class helper {
         }
         self::$bootstrapped = true;
 
-        $tours = manager::get_current_tours();
-
-        if ($tours) {
-            $filters = static::get_all_clientside_filters();
-
-            $tourdetails = array_map(function($tour) use ($filters) {
-                return [
-                        'tourId' => $tour->get_id(),
-                        'startTour' => $tour->should_show_for_user(),
-                        'filtervalues' => $tour->get_client_filter_values($filters),
-                ];
-            }, $tours);
-
-            $filternames = [];
-            foreach ($filters as $filter) {
-                    $filternames[] = $filter::get_filter_name();
-            }
-
+        if ($tour = manager::get_current_tour()) {
             $PAGE->requires->js_call_amd('tool_usertours/usertours', 'init', [
-                    $tourdetails,
-                    $filternames,
-            ]);
+                    $tour->get_id(),
+                    $tour->should_show_for_user(),
+                    $PAGE->context->id,
+                ]);
+        }
+    }
+
+    /**
+     * Add the reset link to the current page.
+     */
+    public static function bootstrap_reset() {
+        if (manager::get_current_tour()) {
+            echo \html_writer::link('', get_string('resettouronpage', 'tool_usertours'), [
+                    'data-action'   => 'tool_usertours/resetpagetour',
+                ]);
         }
     }
 
@@ -572,58 +557,6 @@ class helper {
             return $rc->isInstantiable();
         });
 
-        $filters = array_merge($filters, static::get_all_clientside_filters());
-
         return $filters;
-    }
-
-    /**
-     * Get a list of all clientside filters.
-     *
-     * @return  array
-     */
-    public static function get_all_clientside_filters() {
-        $filters = \core_component::get_component_classes_in_namespace('tool_usertours', 'local\clientside_filter');
-        $filters = array_keys($filters);
-
-        $filters = array_filter($filters, function($filterclass) {
-            $rc = new \ReflectionClass($filterclass);
-            return $rc->isInstantiable();
-        });
-
-        return $filters;
-    }
-
-    /**
-     * Attempt to fetch any matching langstring if the content is in the
-     * format identifier,component.
-     *
-     * @param string $content Step's content or Tour's name or Tour's description
-     * @return string Processed content, any langstring will be converted to translated text
-     */
-    public static function get_string_from_input(string $content): string {
-        $content = trim($content);
-
-        if (preg_match(static::LANG_STRING_REGEX, $content, $matches)) {
-            if ($matches[2] === 'moodle') {
-                $matches[2] = 'core';
-            }
-
-            if (get_string_manager()->string_exists($matches[1], $matches[2])) {
-                $content = get_string($matches[1], $matches[2]);
-            }
-        }
-
-        return $content;
-    }
-
-    /**
-     * Check if the given string contains any matching langstring.
-     *
-     * @param string $string
-     * @return bool
-     */
-    public static function is_language_string_from_input(string $string): bool {
-        return preg_match(static::LANG_STRING_REGEX, $string) == true;
     }
 }

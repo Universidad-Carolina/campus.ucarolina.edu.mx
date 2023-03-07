@@ -14,19 +14,26 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core_question;
-
-use core_question\statistics\questions\calculated_question_summary;
-
 /**
- * Class core_question_calculated_question_summary_testcase
+ * Unit tests for the calculated_random_question_summary class.
  *
  * @package    core_question
  * @category   test
  * @copyright  2018 Shamim Rezaie <shamim@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class calculated_question_summary_test extends \advanced_testcase {
+
+defined('MOODLE_INTERNAL') || die();
+
+use core_question\statistics\questions\calculated_question_summary;
+
+/**
+ * Class core_question_calculated_question_summary_testcase
+ *
+ * @copyright  2018 Shamim Rezaie <shamim@moodle.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class core_question_calculated_question_summary_testcase extends advanced_testcase {
 
     /**
      * Provider for test_get_min_max_of.

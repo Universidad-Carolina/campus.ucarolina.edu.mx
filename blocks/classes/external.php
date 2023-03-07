@@ -27,7 +27,6 @@
 defined('MOODLE_INTERNAL') || die;
 
 require_once("$CFG->libdir/externallib.php");
-require_once("$CFG->dirroot/my/lib.php");
 
 /**
  * Blocks external functions
@@ -60,7 +59,7 @@ class core_block_external extends external_api {
                 'visible'       => new external_value(PARAM_BOOL, 'Whether the block is visible.', VALUE_OPTIONAL),
                 'contents'      => new external_single_structure(
                     array(
-                        'title'         => new external_value(PARAM_RAW, 'Block title.'),
+                        'title'         => new external_value(PARAM_TEXT, 'Block title.'),
                         'content'       => new external_value(PARAM_RAW, 'Block contents.'),
                         'contentformat' => new external_format_value('content'),
                         'footer'        => new external_value(PARAM_RAW, 'Block footer.'),
@@ -92,9 +91,6 @@ class core_block_external extends external_api {
      */
     private static function get_all_current_page_blocks($includeinvisible = false, $returncontents = false) {
         global $PAGE, $OUTPUT;
-
-        // Set page URL to a fake URL to avoid errors.
-        $PAGE->set_url(new \moodle_url('/webservice/core_block_external/'));
 
         // Load the block instances for all the regions.
         $PAGE->blocks->load_blocks($includeinvisible);
@@ -222,7 +218,6 @@ class core_block_external extends external_api {
             array(
                 'userid'  => new external_value(PARAM_INT, 'User id (optional), default is current user.', VALUE_DEFAULT, 0),
                 'returncontents' => new external_value(PARAM_BOOL, 'Whether to return the block contents.', VALUE_DEFAULT, false),
-                'mypage' => new external_value(PARAM_TEXT, 'What my page to return blocks of', VALUE_DEFAULT, MY_PAGE_DEFAULT),
             )
         );
     }
@@ -230,21 +225,20 @@ class core_block_external extends external_api {
     /**
      * Returns blocks information for the given user dashboard.
      *
-     * @param int $userid The user id to retrieve the blocks from, optional, default is to current user.
+     * @param int $userid The user id to retrive the blocks from, optional, default is to current user.
      * @param bool $returncontents Whether to return the block contents
-     * @param string $mypage The page to get blocks of within my
      * @return array Blocks list and possible warnings
      * @throws moodle_exception
      * @since Moodle 3.6
      */
-    public static function get_dashboard_blocks($userid = 0, $returncontents = false, $mypage = MY_PAGE_DEFAULT) {
+    public static function get_dashboard_blocks($userid = 0, $returncontents = false) {
         global $CFG, $USER, $PAGE;
 
         require_once($CFG->dirroot . '/my/lib.php');
 
         $warnings = array();
         $params = self::validate_parameters(self::get_dashboard_blocks_parameters(),
-            ['userid' => $userid, 'returncontents' => $returncontents, 'mypage' => $mypage]);
+            ['userid' => $userid, 'returncontents' => $returncontents]);
 
         $userid = $params['userid'];
         if (empty($userid)) {
@@ -261,14 +255,8 @@ class core_block_external extends external_api {
         $context = context_user::instance($userid);;
         self::validate_context($context);
 
-        $currentpage = null;
-        if ($params['mypage'] === MY_PAGE_DEFAULT) {
-            $currentpage = my_get_page($userid);
-        } else if ($params['mypage'] === MY_PAGE_COURSES) {
-            $currentpage = my_get_page($userid, MY_PAGE_PUBLIC, MY_PAGE_COURSES);
-        }
-
-        if (!$currentpage) {
+        // Get the My Moodle page info.  Should always return something unless the database is broken.
+        if (!$currentpage = my_get_page($userid, MY_PAGE_PRIVATE)) {
             throw new moodle_exception('mymoodlesetup');
         }
 
@@ -281,34 +269,6 @@ class core_block_external extends external_api {
         // Load the block instances in the current $PAGE for all the regions.
         $returninvisible = has_capability('moodle/my:manageblocks', $context) ? true : false;
         $allblocks = self::get_all_current_page_blocks($returninvisible, $params['returncontents']);
-
-        // Temporary hack to be removed in 4.1.
-        // Return always the course overview block so old versions of the app can list the user courses.
-        if ($mypage == MY_PAGE_DEFAULT && core_useragent::is_moodle_app()) {
-            $myoverviewfound = false;
-
-            foreach ($allblocks as $block) {
-                if ($block['name'] == 'myoverview' && $block['visible']) {
-                    $myoverviewfound = true;
-                    break;
-                }
-            }
-
-            if (!$myoverviewfound) {
-                // Include a course overview fake block.
-                $allblocks[] = [
-                    'instanceid' => 0,
-                    'name' => 'myoverview',
-                    'region' => 'forced',
-                    'positionid' => null,
-                    'collapsible' => true,
-                    'dockable' => false,
-                    'weight' => 0,
-                    'visible' => true,
-                ];
-            }
-        }
-        // End of the hack to be removed in 4.1 see MDL-73670.
 
         return array(
             'blocks' => $allblocks,

@@ -63,7 +63,9 @@ class provider implements
      * @param int $userid The ID of the user whose data is to be exported.
      */
     public static function export_user_preferences(int $userid) {
-        $preference = get_user_preferences('filemanager_recentviewmode', null, $userid);
+
+        $preference = get_user_preferences('filemanager_recentviewmode');
+
         if ($preference !== null) {
             switch ($preference) {
                 case 1:

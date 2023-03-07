@@ -1,4 +1,4 @@
-@block @block_activity_results @javascript
+@block @block_activity_results
 Feature: The activity results block displays student in visible groups low scores
   In order to be display student scores
   As a user
@@ -41,18 +41,16 @@ Feature: The activity results block displays student in visible groups low score
       | student4 | G2 |
       | student5 | G3 |
       | student6 | G3 |
-    And the following "activity" exists:
-      | activity                        | assign          |
-      | course                          | C1              |
-      | idnumber                        | 0001            |
-      | name                            | Test assignment |
-      | intro                           | Offline text    |
-      | section                         | 1               |
-      | assignsubmission_file_enabled   | 0               |
-      | groupmode                       | 2               |
     And I log in as "teacher1"
     And I am on "Course 1" course homepage with editing mode on
+    And I add a "Assignment" to section "1" and I fill the form with:
+      | Assignment name | Test assignment |
+      | Description | Offline text |
+      | assignsubmission_file_enabled | 0 |
+      | Group mode | Visible groups |
+    And I am on "Course 1" course homepage
     And I navigate to "View > Grader report" in the course gradebook
+    And I turn editing mode on
     And I give the grade "100.00" to the user "Student 1" for the grade item "Test assignment"
     And I give the grade "90.00" to the user "Student 2" for the grade item "Test assignment"
     And I give the grade "90.00" to the user "Student 3" for the grade item "Test assignment"
@@ -66,12 +64,12 @@ Feature: The activity results block displays student in visible groups low score
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 0 |
-      | config_showworst | 1 |
-      | config_gradeformat | Percentages |
-      | config_nameformat | Display full names |
-      | config_decimalpoints | 0 |
-      | config_usegroups | Yes |
+      | id_config_showbest | 0 |
+      | id_config_showworst | 1 |
+      | id_config_gradeformat | Percentages |
+      | id_config_nameformat | Display full names |
+      | id_config_decimalpoints | 0 |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     Then I should see "Group 3" in the "Activity results" "block"
     And I should see "75%" in the "Activity results" "block"
@@ -80,11 +78,11 @@ Feature: The activity results block displays student in visible groups low score
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 0 |
-      | config_showworst | 1 |
-      | config_gradeformat | Fractions |
-      | config_nameformat | Display full names |
-      | config_usegroups | Yes |
+      | id_config_showbest | 0 |
+      | id_config_showworst | 1 |
+      | id_config_gradeformat | Fractions |
+      | id_config_nameformat | Display full names |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"
@@ -96,11 +94,11 @@ Feature: The activity results block displays student in visible groups low score
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 0 |
-      | config_showworst | 1 |
-      | config_gradeformat | Absolute numbers |
-      | config_nameformat | Display full names |
-      | config_usegroups | Yes |
+      | id_config_showbest | 0 |
+      | id_config_showworst | 1 |
+      | id_config_gradeformat | Absolute numbers |
+      | id_config_nameformat | Display full names |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"
@@ -112,12 +110,12 @@ Feature: The activity results block displays student in visible groups low score
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 0 |
-      | config_showworst | 2 |
-      | config_gradeformat | Percentages |
-      | config_nameformat | Display full names |
-      | config_decimalpoints | 0 |
-      | config_usegroups | Yes |
+      | id_config_showbest | 0 |
+      | id_config_showworst | 2 |
+      | id_config_gradeformat | Percentages |
+      | id_config_nameformat | Display full names |
+      | id_config_decimalpoints | 0 |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     Then I should see "Group 2" in the "Activity results" "block"
     And I should see "85%" in the "Activity results" "block"
@@ -135,11 +133,11 @@ Feature: The activity results block displays student in visible groups low score
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 0 |
-      | config_showworst | 2 |
-      | config_gradeformat | Fractions |
-      | config_nameformat | Display full names |
-      | config_usegroups | Yes |
+      | id_config_showbest | 0 |
+      | id_config_showworst | 2 |
+      | id_config_gradeformat | Fractions |
+      | id_config_nameformat | Display full names |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"
@@ -153,11 +151,11 @@ Feature: The activity results block displays student in visible groups low score
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 0 |
-      | config_showworst | 2 |
-      | config_gradeformat | Absolute numbers |
-      | config_nameformat | Display full names |
-      | config_usegroups | Yes |
+      | id_config_showbest | 0 |
+      | id_config_showworst | 2 |
+      | id_config_gradeformat | Absolute numbers |
+      | id_config_nameformat | Display full names |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"
@@ -168,16 +166,14 @@ Feature: The activity results block displays student in visible groups low score
     And I should see "75.00" in the "Activity results" "block"
 
   Scenario: Try to configure the block on the course page to show multiple low scores using ID numbers
-    Given the following config values are set as admin:
-      | showuseridentity | idnumber,email |
-    And I add the "Activity results" block
+    Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 0 |
-      | config_showworst | 2 |
-      | config_gradeformat | Percentages |
-      | config_nameformat | Display only ID numbers |
-      | config_usegroups | Yes |
+      | id_config_showbest | 0 |
+      | id_config_showworst | 2 |
+      | id_config_gradeformat | Percentages |
+      | id_config_nameformat | Display only ID numbers |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"
@@ -190,11 +186,11 @@ Feature: The activity results block displays student in visible groups low score
     Given I add the "Activity results" block
     When I configure the "Activity results" block
     And I set the following fields to these values:
-      | config_showbest | 0 |
-      | config_showworst | 2 |
-      | config_gradeformat | Percentages |
-      | config_nameformat | Anonymous results |
-      | config_usegroups | Yes |
+      | id_config_showbest | 0 |
+      | id_config_showworst | 2 |
+      | id_config_gradeformat | Percentages |
+      | id_config_nameformat | Anonymous results |
+      | id_config_usegroups | Yes |
     And I press "Save changes"
     And I log out
     Then I log in as "student1"

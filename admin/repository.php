@@ -142,8 +142,6 @@ if (($action == 'edit') || ($action == 'new')) {
             $success = true;
             if (!$repoid = $type->create()) {
                 $success = false;
-            } else {
-                add_to_config_log('repository_visibility', '', (int)$visible, $plugin);
             }
             $data = data_submitted();
         }
@@ -152,7 +150,7 @@ if (($action == 'edit') || ($action == 'new')) {
             core_plugin_manager::reset_caches();
             redirect($baseurl);
         } else {
-            throw new \moodle_exception('instancenotsaved', 'repository', $baseurl);
+            print_error('instancenotsaved', 'repository', $baseurl);
         }
         exit;
     } else {
@@ -183,33 +181,39 @@ if (($action == 'edit') || ($action == 'new')) {
     }
 } else if ($action == 'show') {
     if (!confirm_sesskey()) {
-        throw new \moodle_exception('confirmsesskeybad', '', $baseurl);
+        print_error('confirmsesskeybad', '', $baseurl);
     }
-    $class = \core_plugin_manager::resolve_plugininfo_class('repository');
-    $class::enable_plugin($repository, 1);
+    $repositorytype = repository::get_type_by_typename($repository);
+    if (empty($repositorytype)) {
+        print_error('invalidplugin', 'repository', '', $repository);
+    }
+    $repositorytype->update_visibility(true);
+    core_plugin_manager::reset_caches();
     $return = true;
 } else if ($action == 'hide') {
     if (!confirm_sesskey()) {
-        throw new \moodle_exception('confirmsesskeybad', '', $baseurl);
+        print_error('confirmsesskeybad', '', $baseurl);
     }
-    $class = \core_plugin_manager::resolve_plugininfo_class('repository');
-    $class::enable_plugin($repository, 0);
+    $repositorytype = repository::get_type_by_typename($repository);
+    if (empty($repositorytype)) {
+        print_error('invalidplugin', 'repository', '', $repository);
+    }
+    $repositorytype->update_visibility(false);
+    core_plugin_manager::reset_caches();
     $return = true;
 } else if ($action == 'delete') {
     $repositorytype = repository::get_type_by_typename($repository);
     if ($sure) {
         $PAGE->set_pagetype('admin-repository-' . $repository);
         if (!confirm_sesskey()) {
-            throw new \moodle_exception('confirmsesskeybad', '', $baseurl);
+            print_error('confirmsesskeybad', '', $baseurl);
         }
 
         if ($repositorytype->delete($downloadcontents)) {
-            // Include this information into config changes table.
-            add_to_config_log('repository_visibility', $repositorytype->get_visible(), '', $repository);
             core_plugin_manager::reset_caches();
             redirect($baseurl);
         } else {
-            throw new \moodle_exception('instancenotdeleted', 'repository', $baseurl);
+            print_error('instancenotdeleted', 'repository', $baseurl);
         }
         exit;
     } else {
@@ -386,7 +390,6 @@ if (($action == 'edit') || ($action == 'new')) {
             }
 
             $table->data[] = array($i->get_readablename(), $OUTPUT->render($select), $updown, $settings, $uninstall);
-            $table->rowclasses[] = '';
 
             if (!in_array($typename, $alreadyplugins)) {
                 $alreadyplugins[] = $typename;
@@ -407,7 +410,6 @@ if (($action == 'edit') || ($action == 'new')) {
                     $uninstall = html_writer::link($uninstallurl, $struninstall);
                 }
                 $table->data[] = array(get_string('pluginname', 'repository_'.$plugin), $OUTPUT->render($select), '', '', $uninstall);
-                $table->rowclasses[] = 'dimmed_text';
             }
         }
     }

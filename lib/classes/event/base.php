@@ -134,7 +134,7 @@ abstract class base implements \IteratorAggregate {
     /**
      * Private constructor, use create() or restore() methods instead.
      */
-    final private function __construct() {
+    private final function __construct() {
         $this->data = array_fill_keys(self::$fields, null);
 
         // Define some basic details.
@@ -984,7 +984,7 @@ abstract class base implements \IteratorAggregate {
      *
      * @return \ArrayIterator
      */
-    public function getIterator(): \Traversable {
+    public function getIterator() {
         return new \ArrayIterator($this->data);
     }
 

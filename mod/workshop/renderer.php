@@ -38,16 +38,6 @@ class mod_workshop_renderer extends plugin_renderer_base {
     ////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Renders the tertiary nav for the allocation pages
-     *
-     * @param \mod_workshop\output\actionbar $actionbar
-     * @return bool|string the rendered output
-     */
-    public function render_allocation_menu(\mod_workshop\output\actionbar $actionbar): string {
-        return $this->render_from_template('mod_workshop/action_bar', $actionbar->export_for_template($this));
-    }
-
-    /**
      * Renders workshop message
      *
      * @param workshop_message $message to display
@@ -112,7 +102,7 @@ class mod_workshop_renderer extends plugin_renderer_base {
 
         if (!$anonymous) {
             $author = new stdclass();
-            $additionalfields = explode(',', implode(',', \core_user\fields::get_picture_fields()));
+            $additionalfields = explode(',', user_picture::fields());
             $author = username_load_fields_from_object($author, $submission, 'author', $additionalfields);
             $userpic            = $this->output->user_picture($author, array('courseid' => $this->page->course->id, 'size' => 64));
             $userurl            = new moodle_url('/user/view.php',
@@ -190,7 +180,7 @@ class mod_workshop_renderer extends plugin_renderer_base {
 
         if (!$anonymous) {
             $author             = new stdClass();
-            $additionalfields = explode(',', implode(',', \core_user\fields::get_picture_fields()));
+            $additionalfields = explode(',', user_picture::fields());
             $author = username_load_fields_from_object($author, $summary, 'author', $additionalfields);
             $userpic            = $this->output->user_picture($author, array('courseid' => $this->page->course->id, 'size' => 35));
             $userurl            = new moodle_url('/user/view.php',
@@ -431,7 +421,7 @@ class mod_workshop_renderer extends plugin_renderer_base {
         $userinfo   = $data->userinfo;
 
         if (empty($grades)) {
-            return $this->output->notification(get_string('nothingtodisplay'), 'success', false);
+            return '';
         }
 
         $table = new html_table();
@@ -819,22 +809,6 @@ class mod_workshop_renderer extends plugin_renderer_base {
         $select->method = 'post';
 
         return $this->output->container($this->output->render($select), 'perpagewidget');
-    }
-
-    /**
-     * Render the initials bars for workshop.
-     *
-     * @param workshop $workshop the current workshop of initial bars.
-     * @param moodle_url $url base URL object.
-     * @return string HTML.
-     */
-    public function initials_bars(workshop $workshop, moodle_url $url): string {
-        $ifirst = $workshop->get_initial_first();
-        $ilast = $workshop->get_initial_last();
-
-        $html = $this->output->initials_bar($ifirst, 'firstinitial', get_string('firstname'), 'ifirst', $url);
-        $html .= $this->output->initials_bar($ilast, 'lastinitial', get_string('lastname'), 'ilast', $url);
-        return $html;
     }
 
     /**

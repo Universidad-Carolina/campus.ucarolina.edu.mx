@@ -41,7 +41,6 @@ class behat_quizaccess_seb_generator extends behat_generator_base {
     protected function get_creatable_entities(): array {
         return [
             'seb templates' => [
-                'singular' => 'seb template',
                 'datagenerator' => 'template',
                 'required' => ['name'],
             ],

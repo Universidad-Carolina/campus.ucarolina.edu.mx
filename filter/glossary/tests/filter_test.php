@@ -23,12 +23,15 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace filter_glossary;
+defined('MOODLE_INTERNAL') || die();
+
+global $CFG;
+require_once($CFG->dirroot . '/filter/glossary/filter.php'); // Include the code to test.
 
 /**
  * Test case for glossary.
  */
-class filter_test extends \advanced_testcase {
+class filter_glossary_filter_testcase extends advanced_testcase {
 
     public function test_link_to_entry_with_alias() {
         global $CFG;
@@ -40,7 +43,7 @@ class filter_test extends \advanced_testcase {
 
         // Create a test course.
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
+        $context = context_course::instance($course->id);
 
         // Create a glossary.
         $glossary = $this->getDataGenerator()->create_module('glossary',
@@ -81,7 +84,7 @@ class filter_test extends \advanced_testcase {
 
         // Create a test course.
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
+        $context = context_course::instance($course->id);
 
         // Create a glossary.
         $glossary = $this->getDataGenerator()->create_module('glossary',
@@ -118,7 +121,7 @@ class filter_test extends \advanced_testcase {
 
         // Create a test course.
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
+        $context = context_course::instance($course->id);
 
         // Create a glossary.
         $glossary = $this->getDataGenerator()->create_module('glossary',
@@ -156,7 +159,7 @@ class filter_test extends \advanced_testcase {
 
         // Create a test course.
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
+        $context = context_course::instance($course->id);
 
         // Create a glossary.
         $glossary = $this->getDataGenerator()->create_module('glossary',
@@ -202,7 +205,7 @@ class filter_test extends \advanced_testcase {
 
         // Create a test course.
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
+        $context = context_course::instance($course->id);
 
         // Create a glossary.
         $glossary = $this->getDataGenerator()->create_module('glossary',
@@ -246,7 +249,7 @@ class filter_test extends \advanced_testcase {
 
         // Create a test course.
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
+        $context = context_course::instance($course->id);
 
         // Create a glossary.
         $glossary = $this->getDataGenerator()->create_module('glossary',
@@ -285,7 +288,7 @@ class filter_test extends \advanced_testcase {
 
         // Create a test course.
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
+        $context = context_course::instance($course->id);
 
         // Create a glossary.
         $glossary = $this->getDataGenerator()->create_module('glossary',

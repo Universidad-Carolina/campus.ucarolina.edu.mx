@@ -44,8 +44,7 @@ class qtype_numerical_question extends question_graded_automatically {
     public $unitgradingtype;
     /** @var number the penalty for a missing or unrecognised unit. */
     public $unitpenalty;
-    /** @var boolean whether the units come before or after the number */
-    public $unitsleft;
+
     /** @var qtype_numerical_answer_processor */
     public $ap;
 
@@ -319,26 +318,6 @@ class qtype_numerical_question extends question_graded_automatically {
                     $args, $forcedownload);
         }
     }
-
-    /**
-     * Return the question settings that define this question as structured data.
-     *
-     * @param question_attempt $qa the current attempt for which we are exporting the settings.
-     * @param question_display_options $options the question display options which say which aspects of the question
-     * should be visible.
-     * @return mixed structure representing the question settings. In web services, this will be JSON-encoded.
-     */
-    public function get_question_definition_for_external_rendering(question_attempt $qa, question_display_options $options) {
-        // This is a partial implementation, returning only the most relevant question settings for now,
-        // ideally, we should return as much as settings as possible (depending on the state and display options).
-
-        return [
-            'unitgradingtype' => $this->unitgradingtype,
-            'unitpenalty' => $this->unitpenalty,
-            'unitdisplay' => $this->unitdisplay,
-            'unitsleft' => $this->unitsleft,
-        ];
-    }
 }
 
 
@@ -357,7 +336,7 @@ class qtype_numerical_answer extends question_answer {
 
     public function __construct($id, $answer, $fraction, $feedback, $feedbackformat, $tolerance) {
         parent::__construct($id, $answer, $fraction, $feedback, $feedbackformat);
-        $this->tolerance = abs((float)$tolerance);
+        $this->tolerance = abs($tolerance);
     }
 
     public function get_tolerance_interval() {
@@ -384,9 +363,6 @@ class qtype_numerical_answer extends question_answer {
 
             case 3: case 'geometric':
                 $quotient = 1 + abs($tolerance);
-                if ($this->answer < 0) {
-                    return array($this->answer * $quotient, $this->answer / $quotient);
-                }
                 return array($this->answer / $quotient, $this->answer * $quotient);
 
             default:

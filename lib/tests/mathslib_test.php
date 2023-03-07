@@ -14,15 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core;
-
-use calc_formula;
-
-defined('MOODLE_INTERNAL') || die();
-
-global $CFG;
-require_once($CFG->libdir . '/mathslib.php');
-
 /**
  * Unit tests of mathslib wrapper and underlying EvalMath library.
  *
@@ -31,7 +22,14 @@ require_once($CFG->libdir . '/mathslib.php');
  * @copyright  2007 Petr Skoda {@link http://skodak.org}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class mathslib_test extends \basic_testcase {
+
+defined('MOODLE_INTERNAL') || die();
+
+global $CFG;
+require_once($CFG->libdir . '/mathslib.php');
+
+
+class core_mathslib_testcase extends basic_testcase {
 
     /**
      * Tests the basic formula evaluation.
@@ -297,19 +295,19 @@ class mathslib_test extends \basic_testcase {
 
     public function test_scientific_notation() {
         $formula = new calc_formula('=10e10');
-        $this->assertEqualsWithDelta(1e11, $formula->evaluate(), 1e11 * 1e-15);
+        $this->assertEquals(1e11, $formula->evaluate(), '', 1e11*1e-15);
 
         $formula = new calc_formula('=10e-10');
-        $this->assertEqualsWithDelta(1e-9, $formula->evaluate(), 1e11 * 1e-15);
+        $this->assertEquals(1e-9, $formula->evaluate(), '', 1e11*1e-15);
 
         $formula = new calc_formula('=10e+10');
-        $this->assertEqualsWithDelta(1e11, $formula->evaluate(), 1e11 * 1e-15);
+        $this->assertEquals(1e11, $formula->evaluate(), '', 1e11*1e-15);
 
         $formula = new calc_formula('=10e10*5');
-        $this->assertEqualsWithDelta(5e11, $formula->evaluate(), 1e11 * 1e-15);
+        $this->assertEquals(5e11, $formula->evaluate(), '', 1e11*1e-15);
 
         $formula = new calc_formula('=10e10^2');
-        $this->assertEqualsWithDelta(1e22, $formula->evaluate(), 1e22 * 1e-15);
+        $this->assertEquals(1e22, $formula->evaluate(), '', 1e22*1e-15);
     }
 
     public function test_rand_float() {

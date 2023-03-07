@@ -182,7 +182,7 @@ function cron_run_adhoc_tasks(int $timenow, $keepalive = 0, $checklimits = true)
 
         try {
             $task = \core\task\manager::get_next_adhoc_task(time(), $checklimits);
-        } catch (\Throwable $e) {
+        } catch (Exception $e) {
             if ($adhoclock) {
                 // Release the adhoc task runner lock.
                 $adhoclock->release();
@@ -196,12 +196,10 @@ function cron_run_adhoc_tasks(int $timenow, $keepalive = 0, $checklimits = true)
             }
             $waiting = false;
             cron_run_inner_adhoc_task($task);
-            cron_set_process_title("Waiting for next adhoc task");
             $taskcount++;
             unset($task);
         } else {
-            $timeleft = $finishtime - time();
-            if ($timeleft <= 0) {
+            if (time() >= $finishtime) {
                 break;
             }
             if (!$waiting) {
@@ -210,7 +208,6 @@ function cron_run_adhoc_tasks(int $timenow, $keepalive = 0, $checklimits = true)
                 mtrace('.', '');
             }
             $waiting = true;
-            cron_set_process_title("Waiting {$timeleft}s for next adhoc task");
             sleep(1);
         }
     }
@@ -236,14 +233,11 @@ function cron_run_adhoc_tasks(int $timenow, $keepalive = 0, $checklimits = true)
  */
 function cron_run_inner_scheduled_task(\core\task\task_base $task) {
     global $CFG, $DB;
-    $debuglevel = $CFG->debug;
 
-    \core\task\manager::scheduled_task_starting($task);
     \core\task\logmanager::start_logging($task);
 
     $fullname = $task->get_name() . ' (' . get_class($task) . ')';
     mtrace('Execute scheduled task: ' . $fullname);
-    cron_set_process_title('Scheduled task: ' . get_class($task));
     cron_trace_time_and_memory();
     $predbqueries = null;
     $predbqueries = $DB->perf_get_queries();
@@ -251,11 +245,6 @@ function cron_run_inner_scheduled_task(\core\task\task_base $task) {
     try {
         get_mailer('buffer');
         cron_prepare_core_renderer();
-        // Temporarily increase debug level if task has failed and debugging isn't already at maximum.
-        if ($debuglevel !== DEBUG_DEVELOPER && $faildelay = $task->get_fail_delay()) {
-            mtrace('Debugging increased temporarily due to faildelay of ' . $faildelay);
-            set_debugging(DEBUG_DEVELOPER);
-        }
         $task->execute();
         if ($DB->is_transaction_started()) {
             throw new coding_exception("Task left transaction open");
@@ -266,7 +255,7 @@ function cron_run_inner_scheduled_task(\core\task\task_base $task) {
         }
         mtrace('Scheduled task complete: ' . $fullname);
         \core\task\manager::scheduled_task_complete($task);
-    } catch (\Throwable $e) {
+    } catch (Exception $e) {
         if ($DB && $DB->is_transaction_started()) {
             error_log('Database transaction aborted automatically in ' . get_class($task));
             $DB->force_transaction_rollback();
@@ -286,13 +275,8 @@ function cron_run_inner_scheduled_task(\core\task\task_base $task) {
         }
         \core\task\manager::scheduled_task_failed($task);
     } finally {
-        // Reset debugging if it changed.
-        if ($CFG->debug !== $debuglevel) {
-            set_debugging($debuglevel);
-        }
         // Reset back to the standard admin user.
         cron_setup_user();
-        cron_set_process_title('Waiting for next scheduled task');
         cron_prepare_core_renderer(true);
     }
     get_mailer('close');
@@ -304,16 +288,11 @@ function cron_run_inner_scheduled_task(\core\task\task_base $task) {
  * @param \core\task\adhoc_task $task
  */
 function cron_run_inner_adhoc_task(\core\task\adhoc_task $task) {
-    global $CFG, $DB;
-    $debuglevel = $CFG->debug;
+    global $DB, $CFG;
 
-    \core\task\manager::adhoc_task_starting($task);
     \core\task\logmanager::start_logging($task);
 
     mtrace("Execute adhoc task: " . get_class($task));
-    mtrace("Adhoc task id: " . $task->get_id());
-    mtrace("Adhoc task custom data: " . $task->get_custom_data_as_string());
-    cron_set_process_title('Adhoc task: ' . $task->get_id() . ' ' . get_class($task));
     cron_trace_time_and_memory();
     $predbqueries = null;
     $predbqueries = $DB->perf_get_queries();
@@ -351,11 +330,6 @@ function cron_run_inner_adhoc_task(\core\task\adhoc_task $task) {
     try {
         get_mailer('buffer');
         cron_prepare_core_renderer();
-        // Temporarily increase debug level if task has failed and debugging isn't already at maximum.
-        if ($debuglevel !== DEBUG_DEVELOPER && $faildelay = $task->get_fail_delay()) {
-            mtrace('Debugging increased temporarily due to faildelay of ' . $faildelay);
-            set_debugging(DEBUG_DEVELOPER);
-        }
         $task->execute();
         if ($DB->is_transaction_started()) {
             throw new coding_exception("Task left transaction open");
@@ -366,7 +340,7 @@ function cron_run_inner_adhoc_task(\core\task\adhoc_task $task) {
         }
         mtrace("Adhoc task complete: " . get_class($task));
         \core\task\manager::adhoc_task_complete($task);
-    } catch (\Throwable $e) {
+    } catch (Exception $e) {
         if ($DB && $DB->is_transaction_started()) {
             error_log('Database transaction aborted automatically in ' . get_class($task));
             $DB->force_transaction_rollback();
@@ -386,32 +360,11 @@ function cron_run_inner_adhoc_task(\core\task\adhoc_task $task) {
         }
         \core\task\manager::adhoc_task_failed($task);
     } finally {
-        // Reset debug level if it changed.
-        if ($CFG->debug !== $debuglevel) {
-            set_debugging($debuglevel);
-        }
         // Reset back to the standard admin user.
         cron_setup_user();
         cron_prepare_core_renderer(true);
     }
     get_mailer('close');
-}
-
-/**
- * Sets the process title
- *
- * This makes it very easy for a sysadmin to immediately see what task
- * a cron process is running at any given moment.
- *
- * @param string $title process status title
- */
-function cron_set_process_title(string $title) {
-    global $CFG;
-    if (CLI_SCRIPT) {
-        require_once($CFG->libdir . '/clilib.php');
-        $datetime = userdate(time(), '%b %d, %H:%M:%S');
-        cli_set_process_title_suffix("$datetime $title");
-    }
 }
 
 /**

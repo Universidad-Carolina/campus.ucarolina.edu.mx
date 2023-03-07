@@ -24,26 +24,13 @@
 
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->dirroot . '/mod/lti/locallib.php');
-global $_POST, $_SERVER;
-
-if (!isloggedin() && empty($_POST['repost'])) {
-    header_remove("Set-Cookie");
-    $PAGE->set_pagelayout('popup');
-    $PAGE->set_context(context_system::instance());
-    $output = $PAGE->get_renderer('mod_lti');
-    $page = new \mod_lti\output\repost_crosssite_page($_SERVER['REQUEST_URI'], $_POST);
-    echo $output->header();
-    echo $output->render($page);
-    echo $output->footer();
-    return;
-}
 
 $scope = optional_param('scope', '', PARAM_TEXT);
 $responsetype = optional_param('response_type', '', PARAM_TEXT);
 $clientid = optional_param('client_id', '', PARAM_TEXT);
-$redirecturi = optional_param('redirect_uri', '', PARAM_URL);
+$redirecturi = optional_param('redirect_uri', '', PARAM_TEXT);
 $loginhint = optional_param('login_hint', '', PARAM_TEXT);
-$ltimessagehintenc = optional_param('lti_message_hint', '', PARAM_TEXT);
+$ltimessagehint = optional_param('lti_message_hint', 0, PARAM_INT);
 $state = optional_param('state', '', PARAM_TEXT);
 $responsemode = optional_param('response_mode', '', PARAM_TEXT);
 $nonce = optional_param('nonce', '', PARAM_TEXT);
@@ -51,16 +38,10 @@ $prompt = optional_param('prompt', '', PARAM_TEXT);
 
 $ok = !empty($scope) && !empty($responsetype) && !empty($clientid) &&
       !empty($redirecturi) && !empty($loginhint) &&
-      !empty($nonce);
+      !empty($nonce) && !empty($SESSION->lti_message_hint);
 
 if (!$ok) {
     $error = 'invalid_request';
-}
-$ltimessagehint = json_decode($ltimessagehintenc);
-$ok = $ok && isset($ltimessagehint->launchid);
-if (!$ok) {
-    $error = 'invalid_request';
-    $desc = 'No launch id in LTI hint';
 }
 if ($ok && ($scope !== 'openid')) {
     $ok = false;
@@ -71,27 +52,28 @@ if ($ok && ($responsetype !== 'id_token')) {
     $error = 'unsupported_response_type';
 }
 if ($ok) {
-    $launchid = $ltimessagehint->launchid;
-    list($courseid, $typeid, $id, $messagetype, $foruserid, $titleb64, $textb64) = explode(',', $SESSION->$launchid, 7);
-    unset($SESSION->$launchid);
-    $config = lti_get_type_type_config($typeid);
-    $ok = ($clientid === $config->lti_clientid);
+    list($courseid, $typeid, $id, $titleb64, $textb64) = explode(',', $SESSION->lti_message_hint, 5);
+    $ok = ($id !== $ltimessagehint);
     if (!$ok) {
-        $error = 'unauthorized_client';
+        $error = 'invalid_request';
+    } else {
+        $config = lti_get_type_type_config($typeid);
+        $ok = ($clientid === $config->lti_clientid);
+        if (!$ok) {
+            $error = 'unauthorized_client';
+        }
     }
 }
 if ($ok && ($loginhint !== $USER->id)) {
     $ok = false;
     $error = 'access_denied';
 }
-
-// If we're unable to load up config; we cannot trust the redirect uri for POSTing to.
-if (empty($config)) {
-    throw new moodle_exception('invalidrequest', 'error');
-} else {
+if ($ok) {
     $uris = array_map("trim", explode("\n", $config->lti_redirectionuris));
-    if (!in_array($redirecturi, $uris)) {
-        throw new moodle_exception('invalidrequest', 'error');
+    $ok = in_array($redirecturi, $uris);
+    if (!$ok) {
+        $error = 'invalid_request';
+        $desc = 'Unregistered redirect_uri ' . $redirecturi;
     }
 }
 if ($ok) {
@@ -121,8 +103,7 @@ if ($ok) {
         require_login($course, true, $cm);
         require_capability('mod/lti:view', $context);
         $lti = $DB->get_record('lti', array('id' => $cm->instance), '*', MUST_EXIST);
-        $lti->cmid = $cm->id;
-        list($endpoint, $params) = lti_get_launch_data($lti, $nonce, $messagetype, $foruserid);
+        list($endpoint, $params) = lti_get_launch_data($lti, $nonce);
     } else {
         require_login($course);
         $context = context_course::instance($courseid);
@@ -139,7 +120,7 @@ if ($ok) {
         $title = base64_decode($titleb64);
         $text = base64_decode($textb64);
         $request = lti_build_content_item_selection_request($typeid, $course, $returnurl, $title, $text,
-                                                            [], [], false, true, false, false, false, $nonce);
+                                                            [], [], false, false, false, false, false, $nonce);
         $endpoint = $request->url;
         $params = $request->params;
     }
@@ -157,8 +138,8 @@ $r = '<form action="' . $redirecturi . "\" name=\"ltiAuthForm\" id=\"ltiAuthForm
      "method=\"post\" enctype=\"application/x-www-form-urlencoded\">\n";
 if (!empty($params)) {
     foreach ($params as $key => $value) {
-        $key = htmlspecialchars($key, ENT_COMPAT);
-        $value = htmlspecialchars($value, ENT_COMPAT);
+        $key = htmlspecialchars($key);
+        $value = htmlspecialchars($value);
         $r .= "  <input type=\"hidden\" name=\"{$key}\" value=\"{$value}\"/>\n";
     }
 }

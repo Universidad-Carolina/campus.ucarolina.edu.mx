@@ -14,11 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace qtype_ddmarker;
+/**
+ * Unit tests for the drag-and-drop markers question type.
+ *
+ * @package   qtype_ddmarker
+ * @copyright 2012 The Open University
+ * @author    Jamie Pratt <me@jamiep.org>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
-use question_display_options;
-use question_hint_ddmarker;
-use question_state;
 
 defined('MOODLE_INTERNAL') || die();
 global $CFG;
@@ -30,17 +34,16 @@ require_once($CFG->dirroot . '/question/type/ddmarker/tests/helper.php');
 /**
  * Unit tests for the drag-and-drop markers question type.
  *
- * @package   qtype_ddmarker
  * @copyright 2012 The Open University
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class walkthrough_test extends \qbehaviour_walkthrough_test_base {
+class qtype_ddmarker_walkthrough_test extends qbehaviour_walkthrough_test_base {
 
     /**
      * Get an expectation that the output contains a marker.
      * @param unknown $choice which choice.
      * @param unknown $infinite whether there are infinitely many of that choice.
-     * @return \question_contains_tag_with_attributes the expectation.
+     * @return question_contains_tag_with_attributes the expectation.
      */
     protected function get_contains_draggable_marker_home_expectation($choice, $infinite) {
         $class = 'marker choice'.$choice;
@@ -51,7 +54,7 @@ class walkthrough_test extends \qbehaviour_walkthrough_test_base {
         $expectedattrs = array();
         $expectedattrs['class'] = $class;
 
-        return new \question_contains_tag_with_attributes('span', $expectedattrs);
+        return new question_contains_tag_with_attributes('span', $expectedattrs);
     }
 
     /**
@@ -65,13 +68,13 @@ class walkthrough_test extends \qbehaviour_walkthrough_test_base {
         if (!is_null($value)) {
             $expectedattributes['value'] = s($value);
         }
-        return new \question_contains_tag_with_attributes('input', $expectedattributes);
+        return new question_contains_tag_with_attributes('input', $expectedattributes);
     }
 
     public function test_interactive_behaviour() {
 
         // Create a drag-and-drop question.
-        $dd = \test_question_maker::make_question('ddmarker');
+        $dd = test_question_maker::make_question('ddmarker');
         $dd->hints = array(
             new question_hint_ddmarker(13, 'This is the first hint.',
                                                             FORMAT_HTML, false, false, false),
@@ -180,7 +183,7 @@ class walkthrough_test extends \qbehaviour_walkthrough_test_base {
     public function test_deferred_feedback() {
 
         // Create a drag-and-drop question.
-        $dd = \test_question_maker::make_question('ddmarker');
+        $dd = test_question_maker::make_question('ddmarker');
         $dd->shufflechoices = false;
         $this->start_attempt_at_question($dd, 'deferredfeedback', 12);
 
@@ -259,7 +262,7 @@ class walkthrough_test extends \qbehaviour_walkthrough_test_base {
     public function test_deferred_feedback_unanswered() {
 
         // Create a drag-and-drop question.
-        $dd = \test_question_maker::make_question('ddmarker');
+        $dd = test_question_maker::make_question('ddmarker');
         $dd->shufflechoices = false;
         $this->start_attempt_at_question($dd, 'deferredfeedback', 12);
 
@@ -309,7 +312,7 @@ class walkthrough_test extends \qbehaviour_walkthrough_test_base {
     public function test_deferred_feedback_partial_answer() {
 
         // Create a drag-and-drop question.
-        $dd = \test_question_maker::make_question('ddmarker');
+        $dd = test_question_maker::make_question('ddmarker');
         $dd->shufflechoices = false;
         $this->start_attempt_at_question($dd, 'deferredfeedback', 3);
 
@@ -357,7 +360,7 @@ class walkthrough_test extends \qbehaviour_walkthrough_test_base {
     public function test_interactive_grading() {
 
         // Create a drag-and-drop question.
-        $dd = \test_question_maker::make_question('ddmarker');
+        $dd = test_question_maker::make_question('ddmarker');
         $dd->hints = array(
             new question_hint_ddmarker(1, 'This is the first hint.',
                     FORMAT_MOODLE, true, true, false),
@@ -501,7 +504,7 @@ class walkthrough_test extends \qbehaviour_walkthrough_test_base {
     public function test_interactive_correct_no_submit() {
 
         // Create a drag-and-drop question.
-        $dd = \test_question_maker::make_question('ddmarker');
+        $dd = test_question_maker::make_question('ddmarker');
         $dd->hints = array(
             new question_hint_ddmarker(23, 'This is the first hint.',
                     FORMAT_MOODLE, false, false, false),
@@ -554,7 +557,7 @@ class walkthrough_test extends \qbehaviour_walkthrough_test_base {
     public function test_interactive_partial_no_submit() {
 
         // Create a drag-and-drop question.
-        $dd = \test_question_maker::make_question('ddmarker');
+        $dd = test_question_maker::make_question('ddmarker');
         $dd->hints = array(
             new question_hint_ddmarker(23, 'This is the first hint.',
                     FORMAT_MOODLE, false, false, false),
@@ -609,7 +612,7 @@ class walkthrough_test extends \qbehaviour_walkthrough_test_base {
     public function test_interactive_no_right_clears() {
 
         // Create a drag-and-drop question.
-        $dd = \test_question_maker::make_question('ddmarker');
+        $dd = test_question_maker::make_question('ddmarker');
         $dd->hints = array(
             new question_hint_ddmarker(23, 'This is the first hint.',
                                                                 FORMAT_MOODLE, false, true, false),
@@ -675,7 +678,7 @@ class walkthrough_test extends \qbehaviour_walkthrough_test_base {
     public function test_display_of_right_answer_when_shuffled() {
 
         // Create a drag-and-drop question.
-        $dd = \test_question_maker::make_question('ddmarker');
+        $dd = test_question_maker::make_question('ddmarker');
         $this->start_attempt_at_question($dd, 'deferredfeedback', 3);
 
         // Check the initial state.

@@ -105,10 +105,9 @@ function xmldb_main_install() {
         throw new moodle_exception('generalexceptionmessage', 'error', '', 'Can not create default course category, categories already exist.');
     }
     $cat = new stdClass();
-    $cat->name         = get_string('defaultcategoryname');
-    $cat->descriptionformat = FORMAT_HTML;
+    $cat->name         = get_string('miscellaneous');
     $cat->depth        = 1;
-    $cat->sortorder    = get_max_courses_in_category();
+    $cat->sortorder    = MAX_COURSES_IN_CATEGORY;
     $cat->timemodified = time();
     $catid = $DB->insert_record('course_categories', $cat);
     $DB->set_field('course_categories', 'path', '/'.$catid, array('id'=>$catid));
@@ -131,7 +130,7 @@ function xmldb_main_install() {
         'filterall'             => 0, // setting page, so have to be initialised here.
         'texteditors'           => 'atto,tinymce,textarea',
         'antiviruses'           => '',
-        'media_plugins_sortorder' => 'videojs,youtube',
+        'media_plugins_sortorder' => 'videojs,youtube,swf',
         'upgrade_extracreditweightsstepignored' => 1, // New installs should not run this upgrade step.
         'upgrade_calculatedgradeitemsignored' => 1, // New installs should not run this upgrade step.
         'upgrade_letterboundarycourses' => 1, // New installs should not run this upgrade step.
@@ -310,13 +309,6 @@ function xmldb_main_install() {
     $mypage->private = 1;
     $DB->insert_record('my_pages', $mypage);
 
-    $mycoursespage = new stdClass();
-    $mycoursespage->userid = null;
-    $mycoursespage->name = '__courses';
-    $mycoursespage->private = 0;
-    $mycoursespage->sortorder  = 0;
-    $DB->insert_record('my_pages', $mycoursespage);
-
     // Set a sensible default sort order for the most-used question types.
     set_config('multichoice_sortorder', 1, 'question');
     set_config('truefalse_sortorder', 2, 'question');
@@ -331,8 +323,4 @@ function xmldb_main_install() {
 
     require_once($CFG->dirroot . '/badges/upgradelib.php'); // Core install and upgrade related functions only for badges.
     badges_install_default_backpacks();
-
-    // Create default core site admin presets.
-    require_once($CFG->dirroot . '/admin/presets/classes/helper.php');
-    \core_adminpresets\helper::create_default_presets();
 }

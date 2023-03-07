@@ -110,11 +110,12 @@ class user_course_navigation implements renderable, templatable {
 
             $data->users = array();
             foreach ($users as $user) {
-                $data->users[] = (object)[
-                    'id' => $user->id,
-                    'fullname' => fullname($user, has_capability('moodle/site:viewfullnames', $context)),
-                    'selected' => $user->id == $this->userid
-                ];
+                $exporter = new user_summary_exporter($user);
+                $user = $exporter->export($output);
+                if ($user->id == $this->userid) {
+                    $user->selected = true;
+                }
+                $data->users[] = $user;
             }
             $data->hasusers = true;
 

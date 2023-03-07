@@ -35,13 +35,6 @@ defined('MOODLE_INTERNAL') || die();
 
 $messageproviders = array (
 
-    'newlogin' => array (
-        'defaults' => array(
-            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-        ),
-    ),
-
     // Notices that an admin might be interested in
     'notices' => array (
          'capability'  => 'moodle/site:config'
@@ -56,15 +49,15 @@ $messageproviders = array (
     'availableupdate' => array(
         'capability' => 'moodle/site:config',
         'defaults' => array(
-            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED
+            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF
         ),
 
     ),
 
     'instantmessage' => array (
         'defaults' => array(
-            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
+            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDOFF,
         ),
     ),
 
@@ -81,7 +74,7 @@ $messageproviders = array (
     'courserequestapproved' => array (
          'capability'  => 'moodle/course:request',
          'defaults' => array(
-            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
         ),
     ),
 
@@ -89,32 +82,16 @@ $messageproviders = array (
     'courserequestrejected' => array (
         'capability'  => 'moodle/course:request',
         'defaults' => array(
-            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-        ),
-    ),
-
-    // Course completed. Requires course completion configured at course level. It does not work with just activity progress.
-    'coursecompleted' => [
-        'defaults' => [
-            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-        ],
-    ],
-
-    // Course content updated. New content (activities or resources) has been created or existing content updated.
-    'coursecontentupdated' => array (
-        'defaults' => array(
-            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
         ),
     ),
 
     // Badge award notification to a badge recipient.
     'badgerecipientnotice' => array (
         'defaults' => array(
-            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
+            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDOFF,
+            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
         ),
         'capability'  => 'moodle/badges:earnbadge'
     ),
@@ -122,7 +99,7 @@ $messageproviders = array (
     // Badge award notification to a badge creator (mostly cron-based).
     'badgecreatornotice' => array (
         'defaults' => array(
-            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDOFF,
         )
     ),
 
@@ -135,9 +112,9 @@ $messageproviders = array (
     // User insights.
     'insights' => array (
         'defaults' => [
-            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
+            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDOFF,
+            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
         ]
     ),
 
@@ -146,35 +123,23 @@ $messageproviders = array (
         'defaults' => [
             // We don't need to notify in the popup output here because the message drawer
             // already notifies users of contact requests.
-            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDOFF,
+            'airnotifier' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
         ]
     ],
 
     // Asyncronhous backup/restore notifications.
     'asyncbackupnotification' => array(
         'defaults' => array(
-            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
+            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDOFF,
         )
     ),
 
     'gradenotifications' => [
         'defaults' => array(
-            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
-            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
+            'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDIN + MESSAGE_DEFAULT_LOGGEDOFF,
+            'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_LOGGEDOFF,
         ),
-    ],
-
-    // Infected files.
-    'infected' => array(
-        'capability'  => 'moodle/site:config',
-    ),
-
-    // Report builder schedules.
-    'reportbuilderschedule' => [
-        'defaults' => [
-            'email' => MESSAGE_FORCED,
-        ],
     ],
 );

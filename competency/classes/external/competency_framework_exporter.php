@@ -55,7 +55,7 @@ class competency_framework_exporter extends \core\external\persistent_exporter {
         $context = $this->persistent->get_context();
         $competenciescount = 0;
         try {
-            $competenciescount = api::count_competencies($filters);
+            api::count_competencies($filters);
         } catch (\required_capability_exception $re) {
             $competenciescount = 0;
         }

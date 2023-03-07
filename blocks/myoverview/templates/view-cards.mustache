@@ -29,7 +29,7 @@
                 "fullname": "course 3",
                 "hasprogress": true,
                 "progress": 10,
-                "coursecategory": "Category 1",
+                "coursecategory": "Miscellaneous",
                 "visible": true
             }
         ]
@@ -38,13 +38,11 @@
 
 {{< core_course/coursecards }}
     {{$menu}}
-        <div class="card-footer dashboard-card-footer menu border-0 bg-white ml-auto">
-            {{> block_myoverview/course-action-menu }}
-        </div>
+        {{> block_myoverview/course-action-menu }}
     {{/menu}}
     {{$progress}}
         {{#hasprogress}}
-            <div class="card-footer dashboard-card-footer border-0 bg-white w-100">
+            <div class="card-footer dashboard-card-footer border-0 bg-white">
                 {{> block_myoverview/progress-bar}}
             </div>
         {{/hasprogress}}

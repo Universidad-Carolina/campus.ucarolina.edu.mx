@@ -25,7 +25,7 @@
  */
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
-require_once($CFG->dirroot . '/webservice/lib.php');
+require($CFG->dirroot . '/webservice/lib.php');
 
 admin_externalpage_setup('webservicedocumentation');
 
@@ -35,8 +35,6 @@ $functiondescs = array();
 foreach ($functions as $function) {
     $functiondescs[$function->name] = external_api::external_function_info($function);
 }
-
-// TODO: MDL-76078 - Incorrect inter-communication, core cannot have plugin dependencies like this.
 
 //display the documentation for all documented protocols,
 //regardless if they are activated or not

@@ -1,7 +1,5 @@
 <?php
 
-namespace Moodle;
-
 abstract class H5PEditorEndpoints {
 
   /**
@@ -20,11 +18,6 @@ abstract class H5PEditorEndpoints {
    * Endpoint for retrieving the currently stored content type cache
    */
   const CONTENT_TYPE_CACHE = 'content-type-cache';
-
-  /**
-   * Endpoint for retrieving the currently stored content hub metadata cache
-   */
-  const CONTENT_HUB_METADATA_CACHE = 'content-hub-metadata-cache';
 
   /**
    * Endpoint for installing libraries from the Content Type Hub
@@ -51,11 +44,6 @@ abstract class H5PEditorEndpoints {
    * Endpoint for filtering parameters.
    */
   const FILTER = 'filter';
-
-  /**
-   * Endpoint for installing libraries from the Content Type Hub
-   */
-  const GET_HUB_CONTENT = 'get-hub-content';
 }
 
 
@@ -66,17 +54,17 @@ abstract class H5PEditorEndpoints {
 class H5PEditorAjax {
 
   /**
-   * @var H5PCore
+   * @var \H5PCore
    */
   public $core;
 
   /**
-   * @var H5peditor
+   * @var \H5peditor
    */
   public $editor;
 
   /**
-   * @var H5peditorStorage
+   * @var \H5peditorStorage
    */
   public $storage;
 
@@ -118,13 +106,6 @@ class H5PEditorAjax {
         H5PCore::ajaxSuccess($this->getContentTypeCache(!$this->isContentTypeCacheUpdated()), TRUE);
         break;
 
-      case H5PEditorEndpoints::CONTENT_HUB_METADATA_CACHE:
-        if (!$this->isHubOn()) return;
-        header('Cache-Control: no-cache');
-        header('Content-Type: application/json; charset=utf-8');
-        print '{"success":true,"data":' . $this->core->getUpdatedContentHubMetadataCache(func_get_arg(1)) . '}';
-        break;
-
       case H5PEditorEndpoints::LIBRARY_INSTALL:
         if (!$this->isPostRequest()) return;
 
@@ -162,13 +143,6 @@ class H5PEditorAjax {
         $token = func_get_arg(1);
         if (!$this->isValidEditorToken($token)) return;
         $this->filter(func_get_arg(2));
-        break;
-
-      case H5PEditorEndpoints::GET_HUB_CONTENT:
-        if (!$this->isPostRequest() || !$this->isValidEditorToken(func_get_arg(1))) {
-          return;
-        }
-        $this->getHubContent(func_get_arg(2), func_get_arg(3));
         break;
     }
   }
@@ -215,22 +189,10 @@ class H5PEditorAjax {
     $file = $this->saveFileTemporarily($uploadFilePath, TRUE);
     if (!$file) return;
 
-    $this->processContent($contentId);
-  }
+    // These has to be set instead of sending parameteres to the validation function.
+    if (!$this->isValidPackage()) return;
 
-  /**
-   * Process H5P content from local H5P package.
-   *
-   * @param integer $contentId The Local Content ID / vid. TODO Remove when JI-366 is fixed
-   */
-  private function processContent($contentId) {
-    // Check if the downloaded package is valid
-    if (!$this->isValidPackage()) {
-      return; // Validation errors
-    }
-
-    // Install any required dependencies (libraries) from the package
-    // (if permission allows it, of course)
+    // Install any required dependencies
     $storage = new H5PStorage($this->core->h5pF, $this->core);
     $storage->savePackage(NULL, NULL, TRUE);
 
@@ -263,7 +225,7 @@ class H5PEditorAjax {
   private function isValidEditorToken($token) {
     $isValidToken = $this->editor->ajaxInterface->validateEditorToken($token);
     if (!$isValidToken) {
-      H5PCore::ajaxError(
+      \H5PCore::ajaxError(
         $this->core->h5pF->t('Invalid security token.'),
         'INVALID_TOKEN'
       );
@@ -339,21 +301,6 @@ class H5PEditorAjax {
     $validator = new H5PContentValidator($this->core->h5pF, $this->core);
     $validator->validateLibrary($libraryParameters, (object) array('options' => array($libraryParameters->library)));
     H5PCore::ajaxSuccess($libraryParameters);
-  }
-
-  /**
-   * Download and use content from the HUB
-   *
-   * @param integer $hubId The Hub Content ID
-   * @param integer $localContentId The Local Content ID
-   */
-  private function getHubContent($hubId, $localContentId) {
-    // Download H5P file
-    if (!$this->callHubEndpoint(H5PHubEndpoints::CONTENT . '/' . $hubId . '/export')) {
-      return; // Download failed
-    }
-
-    $this->processContent($localContentId);
   }
 
   /**

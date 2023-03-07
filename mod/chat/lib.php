@@ -31,14 +31,6 @@ define('CHAT_EVENT_TYPE_CHATTIME', 'chattime');
 
 // Gap between sessions. 5 minutes or more of idleness between messages in a chat means the messages belong in different sessions.
 define('CHAT_SESSION_GAP', 300);
-// Don't publish next chat time
-define('CHAT_SCHEDULE_NONE', 0);
-// Publish the specified time only.
-define('CHAT_SCHEDULE_SINGLE', 1);
-// Repeat chat session at the same time daily.
-define('CHAT_SCHEDULE_DAILY', 2);
-// Repeat chat session at the same time weekly.
-define('CHAT_SCHEDULE_WEEKLY', 3);
 
 // The HTML head for the message window to start with (<!-- nix --> is used to get some browsers starting with output.
 global $CHAT_HTMLHEAD;
@@ -121,11 +113,9 @@ function padding($n) {
  * @return int
  */
 function chat_add_instance($chat) {
-    global $DB, $CFG;
-    require_once($CFG->dirroot . '/course/lib.php');
+    global $DB;
 
     $chat->timemodified = time();
-    $chat->chattime = chat_calculate_next_chat_time($chat->schedule, $chat->chattime);
 
     $returnid = $DB->insert_record("chat", $chat);
 
@@ -169,7 +159,6 @@ function chat_update_instance($chat) {
 
     $chat->timemodified = time();
     $chat->id = $chat->instance;
-    $chat->chattime = chat_calculate_next_chat_time($chat->schedule, $chat->chattime);
 
     $DB->update_record("chat", $chat);
 
@@ -383,8 +372,7 @@ function chat_print_recent_activity($course, $viewfullnames, $timestart) {
                 $groupselect = "";
             }
 
-            $userfieldsapi = \core_user\fields::for_userpic();
-            $userfields = $userfieldsapi->get_sql('u', false, '', '', false)->selects;
+            $userfields = user_picture::fields('u');
             if (!$users = $DB->get_records_sql("SELECT $userfields
                                                   FROM {course_modules} cm
                                                   JOIN {chat} ch        ON ch.id = cm.instance
@@ -525,8 +513,7 @@ function chat_get_users($chatid, $groupid=0, $groupingid=0) {
         $groupingjoin = '';
     }
 
-    $userfieldsapi = \core_user\fields::for_userpic();
-    $ufields = $userfieldsapi->get_sql('u', false, '', '', false)->selects;
+    $ufields = user_picture::fields('u');
     return $DB->get_records_sql("SELECT DISTINCT $ufields, c.lastmessageping, c.firstping
                                    FROM {chat_users} c
                                    JOIN {user} u ON u.id = c.userid $groupingjoin
@@ -648,35 +635,6 @@ function chat_delete_old_users() {
 }
 
 /**
- * Calculate next chat session time based on schedule.
- *
- * @param int $schedule
- * @param int $chattime
- *
- * @return int timestamp
- */
-function chat_calculate_next_chat_time(int $schedule, int $chattime): int {
-    $timenow = time();
-
-    switch ($schedule) {
-        case CHAT_SCHEDULE_DAILY: { // Repeat daily.
-            while ($chattime <= $timenow) {
-                $chattime += DAYSECS;
-            }
-            break;
-        }
-        case CHAT_SCHEDULE_WEEKLY: { // Repeat weekly.
-            while ($chattime <= $timenow) {
-                $chattime += WEEKSECS;
-            }
-            break;
-        }
-    }
-
-    return $chattime;
-}
-
-/**
  * Updates chat records so that the next chat time is correct
  *
  * @global object
@@ -701,21 +659,29 @@ function chat_update_chat_times($chatid=0) {
         }
     }
 
-    $courseids = [];
     foreach ($chats as $chat) {
-        $originalchattime = $chat->chattime;
-        $chat->chattime = chat_calculate_next_chat_time($chat->schedule, $chat->chattime);
-        if ($originalchattime != $chat->chattime) {
-            $courseids[] = $chat->course;
-            $DB->update_record("chat", $chat);
-
-            $cm = get_coursemodule_from_instance('chat', $chat->id, $chat->course);
-            \course_modinfo::purge_course_module_cache($cm->course, $cm->id);
+        switch ($chat->schedule) {
+            case 1: // Single event - turn off schedule and disable.
+                $chat->chattime = 0;
+                $chat->schedule = 0;
+                break;
+            case 2: // Repeat daily.
+                while ($chat->chattime <= $timenow) {
+                    $chat->chattime += 24 * 3600;
+                }
+                break;
+            case 3: // Repeat weekly.
+                while ($chat->chattime <= $timenow) {
+                    $chat->chattime += 7 * 24 * 3600;
+                }
+                break;
         }
+        $DB->update_record("chat", $chat);
 
         $event = new stdClass(); // Update calendar too.
-        $cond = "modulename='chat' AND eventtype = :eventtype AND instance = :chatid AND timestart <> :chattime";
-        $params = ['chattime' => $chat->chattime, 'eventtype' => CHAT_EVENT_TYPE_CHATTIME, 'chatid' => $chat->id];
+
+        $cond = "modulename='chat' AND instance = :chatid AND timestart <> :chattime";
+        $params = array('chattime' => $chat->chattime, 'chatid' => $chat->id);
 
         if ($event->id = $DB->get_field_select('event', 'id', $cond, $params)) {
             $event->timestart = $chat->chattime;
@@ -723,11 +689,6 @@ function chat_update_chat_times($chatid=0) {
             $calendarevent = calendar_event::load($event->id);
             $calendarevent->update($event, false);
         }
-    }
-
-    $courseids = array_unique($courseids);
-    foreach ($courseids as $courseid) {
-        rebuild_course_cache($courseid, true, true);
     }
 }
 
@@ -944,7 +905,7 @@ function chat_format_message($message, $courseid, $currentuser, $chatlastrow=nul
 
     if (isset($users[$message->userid])) {
         $user = $users[$message->userid];
-    } else if ($user = $DB->get_record('user', ['id' => $message->userid], implode(',', \core_user\fields::get_picture_fields()))) {
+    } else if ($user = $DB->get_record('user', array('id' => $message->userid), user_picture::fields())) {
         $users[$message->userid] = $user;
     } else {
         return null;
@@ -975,8 +936,7 @@ function chat_format_message_theme ($message, $chatuser, $currentuser, $grouping
 
     if (isset($users[$message->userid])) {
         $sender = $users[$message->userid];
-    } else if ($sender = $DB->get_record('user', array('id' => $message->userid),
-            implode(',', \core_user\fields::get_picture_fields()))) {
+    } else if ($sender = $DB->get_record('user', array('id' => $message->userid), user_picture::fields())) {
         $users[$message->userid] = $sender;
     } else {
         return null;
@@ -1248,7 +1208,7 @@ function chat_reset_userdata($data) {
 
 /**
  * @param string $feature FEATURE_xx constant for requested feature
- * @return mixed True if module supports feature, false if not, null if doesn't know or string for the module purpose.
+ * @return mixed True if module supports feature, null if doesn't know
  */
 function chat_supports($feature) {
     switch($feature) {
@@ -1268,8 +1228,6 @@ function chat_supports($feature) {
             return true;
         case FEATURE_SHOW_DESCRIPTION:
             return true;
-        case FEATURE_MOD_PURPOSE:
-            return MOD_PURPOSE_COMMUNICATION;
         default:
             return null;
     }
@@ -1325,21 +1283,26 @@ function chat_extend_navigation($navigation, $course, $module, $cm) {
  * @param navigation_node $chatnode The node to add module settings to
  */
 function chat_extend_settings_navigation(settings_navigation $settings, navigation_node $chatnode) {
-    global $DB;
-    $chat = $DB->get_record("chat", array("id" => $settings->get_page()->cm->instance));
+    global $DB, $PAGE, $USER;
+    $chat = $DB->get_record("chat", array("id" => $PAGE->cm->instance));
 
-    $currentgroup = groups_get_activity_group($settings->get_page()->cm, true);
+    if ($chat->chattime && $chat->schedule) {
+        $nextsessionnode = $chatnode->add(get_string('nextsession', 'chat').
+                                          ': '.userdate($chat->chattime).
+                                          ' ('.usertimezone($USER->timezone).')');
+        $nextsessionnode->add_class('note');
+    }
+
+    $currentgroup = groups_get_activity_group($PAGE->cm, true);
     if ($currentgroup) {
         $groupselect = " AND groupid = '$currentgroup'";
     } else {
         $groupselect = '';
     }
 
-    if ($chat->studentlogs || has_capability('mod/chat:readlog', $settings->get_page()->cm->context)) {
+    if ($chat->studentlogs || has_capability('mod/chat:readlog', $PAGE->cm->context)) {
         if ($DB->get_records_select('chat_messages', "chatid = ? $groupselect", array($chat->id))) {
-            $chatnode->add(get_string('pastsessions', 'chat'),
-                new moodle_url('/mod/chat/report.php', array('id' => $settings->get_page()->cm->id)),
-                navigation_node::TYPE_SETTING, null, 'pastsessions');
+            $chatnode->add(get_string('viewreport', 'chat'), new moodle_url('/mod/chat/report.php', array('id' => $PAGE->cm->id)));
         }
     }
 }
@@ -1569,40 +1532,4 @@ function chat_get_session_messages($chatid, $group = false, $start = 0, $end = 0
     }
 
     return $DB->get_records_select('chat_messages', $select, $params, $sort);
-}
-
-/**
- * Add a get_coursemodule_info function in case chat instance wants to add 'extra' information
- * for the course (see resource).
- *
- * Given a course_module object, this function returns any "extra" information that may be needed
- * when printing this activity in a course listing.  See get_array_of_activities() in course/lib.php.
- *
- * @param stdClass $coursemodule The coursemodule object (record).
- * @return cached_cm_info An object on information that the courses
- *                        will know about (most noticeably, an icon).
- */
-function chat_get_coursemodule_info($coursemodule) {
-    global $DB;
-
-    $dbparams = ['id' => $coursemodule->instance];
-    $fields = 'id, name, intro, introformat, chattime, schedule';
-    if (!$chat = $DB->get_record('chat', $dbparams, $fields)) {
-        return false;
-    }
-
-    $result = new cached_cm_info();
-    $result->name = $chat->name;
-    if ($coursemodule->showdescription) {
-        // Convert intro to html. Do not filter cached version, filters run at display time.
-        $result->content = format_module_intro('chat', $chat, $coursemodule->id, false);
-    }
-
-    // Populate some other values that can be used in calendar or on dashboard.
-    if ($chat->chattime) {
-        $result->customdata['chattime'] = $chat->chattime;
-        $result->customdata['schedule'] = $chat->schedule;
-    }
-
-    return $result;
 }

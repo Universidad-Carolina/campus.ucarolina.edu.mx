@@ -85,17 +85,6 @@ abstract class user_selector_base {
     /** @var boolean Whether to override fullname() */
     public $viewfullnames = false;
 
-    /** @var boolean Whether to include custom user profile fields */
-    protected $includecustomfields = false;
-    /** @var string User fields selects for custom fields. */
-    protected $userfieldsselects = '';
-    /** @var string User fields join for custom fields. */
-    protected $userfieldsjoin = '';
-    /** @var array User fields params for custom fields. */
-    protected $userfieldsparams = [];
-    /** @var array User fields mappings for custom fields. */
-    protected $userfieldsmappings = [];
-
     /**
      * Constructor. Each subclass must have a constructor with this signature.
      *
@@ -116,8 +105,6 @@ abstract class user_selector_base {
             $this->accesscontext = context_system::instance();
         }
 
-        $this->viewfullnames = has_capability('moodle/site:viewfullnames', $this->accesscontext);
-
         // Check if some legacy code tries to override $CFG->showuseridentity.
         if (isset($options['extrafields'])) {
             debugging('The user_selector classes do not support custom list of extra identity fields any more. '.
@@ -126,25 +113,8 @@ abstract class user_selector_base {
             unset($options['extrafields']);
         }
 
-        if (isset($options['includecustomfields'])) {
-            $this->includecustomfields = $options['includecustomfields'];
-        } else {
-            $this->includecustomfields = false;
-        }
-
         // Populate the list of additional user identifiers to display.
-        if ($this->includecustomfields) {
-            $userfieldsapi = \core_user\fields::for_identity($this->accesscontext)->with_name();
-            $this->extrafields = $userfieldsapi->get_required_fields([\core_user\fields::PURPOSE_IDENTITY]);
-            [
-                'selects' => $this->userfieldsselects,
-                'joins' => $this->userfieldsjoin,
-                'params' => $this->userfieldsparams,
-                'mappings' => $this->userfieldsmappings
-            ] = (array) $userfieldsapi->get_sql('u', true, '', '', false);
-        } else {
-            $this->extrafields = \core_user\fields::get_identity_fields($this->accesscontext, false);
-        }
+        $this->extrafields = get_extra_user_fields($this->accesscontext);
 
         if (isset($options['exclude']) && is_array($options['exclude'])) {
             $this->exclude = $options['exclude'];
@@ -463,18 +433,12 @@ abstract class user_selector_base {
      * @param string $u the table alias for the user table in the query being
      *      built. May be ''.
      * @return string fragment of SQL to go in the select list of the query.
-     * @throws coding_exception if used when includecustomfields is true
      */
-    protected function required_fields_sql(string $u) {
-        if ($this->includecustomfields) {
-            throw new coding_exception('required_fields_sql() is not needed when includecustomfields is true, '.
-                    'use $userfieldsselects instead.');
-        }
-
+    protected function required_fields_sql($u) {
         // Raw list of fields.
         $fields = array('id');
         // Add additional name fields.
-        $fields = array_merge($fields, \core_user\fields::get_name_fields(), $this->extrafields);
+        $fields = array_merge($fields, get_all_user_name_fields(), $this->extrafields);
 
         // Prepend the table alias.
         if ($u) {
@@ -495,12 +459,8 @@ abstract class user_selector_base {
      *      where clause the query, and an array containing any required parameters.
      *      this uses ? style placeholders.
      */
-    protected function search_sql(string $search, string $u): array {
-        $extrafields = $this->includecustomfields
-            ? array_values($this->userfieldsmappings)
-            : $this->extrafields;
-
-        return users_search_sql($search, $u, $this->searchanywhere, $extrafields,
+    protected function search_sql($search, $u) {
+        return users_search_sql($search, $u, $this->searchanywhere, $this->extrafields,
                 $this->exclude, $this->validatinguserids);
     }
 
@@ -586,7 +546,7 @@ abstract class user_selector_base {
      */
     protected function output_optgroup($groupname, $users, $select) {
         if (!empty($users)) {
-            $output = '  <optgroup label="' . htmlspecialchars($groupname, ENT_COMPAT) . ' (' . count($users) . ')">' . "\n";
+            $output = '  <optgroup label="' . htmlspecialchars($groupname) . ' (' . count($users) . ')">' . "\n";
             foreach ($users as $user) {
                 $attributes = '';
                 if (!empty($user->disabled)) {
@@ -604,7 +564,7 @@ abstract class user_selector_base {
                 }
             }
         } else {
-            $output = '  <optgroup label="' . htmlspecialchars($groupname, ENT_COMPAT) . '">' . "\n";
+            $output = '  <optgroup label="' . htmlspecialchars($groupname) . '">' . "\n";
             $output .= '    <option disabled="disabled">&nbsp;</option>' . "\n";
         }
         $output .= "  </optgroup>\n";
@@ -730,7 +690,6 @@ abstract class groups_user_selector_base extends user_selector_base {
     public function __construct($name, $options) {
         global $CFG;
         $options['accesscontext'] = context_course::instance($options['courseid']);
-        $options['includecustomfields'] = true;
         parent::__construct($name, $options);
         $this->groupid = $options['groupid'];
         $this->courseid = $options['courseid'];
@@ -801,11 +760,11 @@ class group_members_selector extends groups_user_selector_base {
     public function find_users($search) {
         list($wherecondition, $params) = $this->search_sql($search, 'u');
 
-        list($sort, $sortparams) = users_order_by_sql('u', $search, $this->accesscontext, $this->userfieldsmappings);
+        list($sort, $sortparams) = users_order_by_sql('u', $search, $this->accesscontext);
 
         $roles = groups_get_members_by_role($this->groupid, $this->courseid,
-                $this->userfieldsselects . ', gm.component',
-                $sort, $wherecondition, array_merge($params, $sortparams, $this->userfieldsparams), $this->userfieldsjoin);
+                $this->required_fields_sql('u') . ', gm.component',
+                $sort, $wherecondition, array_merge($params, $sortparams));
 
         return $this->convert_array_format($roles, $search);
     }
@@ -942,7 +901,7 @@ class group_non_members_selector extends groups_user_selector_base {
         $wheres .= ' AND ' . $searchcondition;
 
         $fields = "SELECT r.id AS roleid, u.id AS userid,
-                          " . $this->userfieldsselects . ",
+                          " . $this->required_fields_sql('u') . ",
                           (SELECT count(igm.groupid)
                              FROM {groups_members} igm
                              JOIN {groups} ig ON igm.groupid = ig.id
@@ -952,13 +911,12 @@ class group_non_members_selector extends groups_user_selector_base {
               LEFT JOIN {role_assignments} ra ON (ra.userid = u.id AND ra.contextid $relatedctxsql AND ra.roleid $roleids)
               LEFT JOIN {role} r ON r.id = ra.roleid
               LEFT JOIN {groups_members} gm ON (gm.userid = u.id AND gm.groupid = :groupid)
-              $this->userfieldsjoin
                   WHERE $wheres";
 
-        list($sort, $sortparams) = users_order_by_sql('u', $search, $this->accesscontext, $this->userfieldsmappings);
+        list($sort, $sortparams) = users_order_by_sql('u', $search, $this->accesscontext);
         $orderby = ' ORDER BY ' . $sort;
 
-        $params = array_merge($searchparams, $roleparams, $relatedctxparams, $enrolledjoin->params, $this->userfieldsparams);
+        $params = array_merge($searchparams, $roleparams, $relatedctxparams, $enrolledjoin->params);
         $params['courseid'] = $this->courseid;
         $params['groupid']  = $this->groupid;
 

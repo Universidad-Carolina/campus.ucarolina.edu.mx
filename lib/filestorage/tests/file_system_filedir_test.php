@@ -14,9 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core;
-
-use file_system_filedir;
+/**
+ * Unit tests for file_system_filedir.
+ *
+ * @package   core_files
+ * @category  phpunit
+ * @copyright 2017 Andrew Nicols <andrew@nicols.co.uk>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -27,18 +32,18 @@ require_once($CFG->libdir . '/filestorage/file_system_filedir.php');
 /**
  * Unit tests for file_system_filedir.
  *
- * @package   core
- * @category  test
+ * @package   core_files
+ * @category  files
  * @copyright 2017 Andrew Nicols <andrew@nicols.co.uk>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @coversDefaultClass \file_system_filedir
+ * @coversDefaultClass file_system_filedir
  */
-class file_system_filedir_test extends \advanced_testcase {
+class core_files_file_system_filedir_testcase extends advanced_testcase {
 
     /**
      * Shared test setUp.
      */
-    public function setUp(): void {
+    public function setUp() {
         // Reset the file storage so that subsequent fetches to get_file_storage are called after
         // configuration is prepared.
         get_file_storage(true);
@@ -47,7 +52,7 @@ class file_system_filedir_test extends \advanced_testcase {
     /**
      * Shared teset tearDown.
      */
-    public function tearDown(): void {
+    public function tearDown() {
         // Reset the file storage so that subsequent tests will use the standard file storage.
         get_file_storage(true);
     }
@@ -94,14 +99,14 @@ class file_system_filedir_test extends \advanced_testcase {
      *                  If no methods are specified, only abstract functions are mocked.
      * @return stored_file
      */
-    protected function get_stored_file($filecontent, $filename = null, $mockedmethods = []) {
-        $contenthash = \file_storage::hash_from_string($filecontent);
+    protected function get_stored_file($filecontent, $filename = null, $mockedmethods = null) {
+        $contenthash = file_storage::hash_from_string($filecontent);
         if (empty($filename)) {
             $filename = $contenthash;
         }
 
-        $file = $this->getMockBuilder(\stored_file::class)
-            ->onlyMethods($mockedmethods)
+        $file = $this->getMockBuilder(stored_file::class)
+            ->setMethods($mockedmethods)
             ->setConstructorArgs([
                 get_file_storage(),
                 (object) [
@@ -124,7 +129,7 @@ class file_system_filedir_test extends \advanced_testcase {
      */
     protected function get_testable_mock($mockedmethods = []) {
         $fs = $this->getMockBuilder(file_system_filedir::class)
-            ->onlyMethods($mockedmethods)
+            ->setMethods($mockedmethods)
             ->getMock();
 
         return $fs;
@@ -148,8 +153,8 @@ class file_system_filedir_test extends \advanced_testcase {
 
         // This should generate an exception.
         $this->expectException('file_exception');
-        $this->expectExceptionMessageMatches(
-            '/Cannot create local file pool directories. Please verify permissions in dataroot./');
+        $this->expectExceptionMessageRegExp(
+            '/Can not create local file pool directories, please verify permissions in dataroot./');
 
         new file_system_filedir();
     }
@@ -172,8 +177,8 @@ class file_system_filedir_test extends \advanced_testcase {
 
         // This should generate an exception.
         $this->expectException('file_exception');
-        $this->expectExceptionMessageMatches(
-            '/Cannot create local file pool directories. Please verify permissions in dataroot./');
+        $this->expectExceptionMessageRegExp(
+            '/Can not create local file pool directories, please verify permissions in dataroot./');
 
         new file_system_filedir();
     }
@@ -205,7 +210,7 @@ class file_system_filedir_test extends \advanced_testcase {
      */
     public function test_get_remote_path_from_hash() {
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
         $expectedresult = (object) [];
 
         $fs = $this->get_testable_mock([
@@ -217,7 +222,7 @@ class file_system_filedir_test extends \advanced_testcase {
             ->with($this->equalTo($contenthash), $this->equalTo(false))
             ->willReturn($expectedresult);
 
-        $method = new \ReflectionMethod(file_system_filedir::class, 'get_remote_path_from_hash');
+        $method = new ReflectionMethod(file_system_filedir::class, 'get_remote_path_from_hash');
         $method->setAccessible(true);
         $result = $method->invokeArgs($fs, [$contenthash]);
 
@@ -293,7 +298,7 @@ class file_system_filedir_test extends \advanced_testcase {
         global $CFG;
 
         $fs = new file_system_filedir();
-        $method = new \ReflectionMethod(file_system_filedir::class, 'get_fulldir_from_hash');
+        $method = new ReflectionMethod(file_system_filedir::class, 'get_fulldir_from_hash');
         $method->setAccessible(true);
         $result = $method->invokeArgs($fs, array($hash));
 
@@ -316,7 +321,7 @@ class file_system_filedir_test extends \advanced_testcase {
 
         $file = $this->getMockBuilder('stored_file')
             ->disableOriginalConstructor()
-            ->onlyMethods([
+            ->setMethods([
                 'sync_external_file',
                 'get_contenthash',
             ])
@@ -325,7 +330,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $file->method('get_contenthash')->willReturn($hash);
 
         $fs = new file_system_filedir();
-        $method = new \ReflectionMethod('file_system_filedir', 'get_fulldir_from_storedfile');
+        $method = new ReflectionMethod('file_system_filedir', 'get_fulldir_from_storedfile');
         $method->setAccessible(true);
         $result = $method->invokeArgs($fs, array($file));
 
@@ -344,7 +349,7 @@ class file_system_filedir_test extends \advanced_testcase {
      * @covers ::get_contentdir_from_hash
      */
     public function test_get_contentdir_from_hash($hash, $hashdir) {
-        $method = new \ReflectionMethod(file_system_filedir::class, 'get_contentdir_from_hash');
+        $method = new ReflectionMethod(file_system_filedir::class, 'get_contentdir_from_hash');
         $method->setAccessible(true);
 
         $fs = new file_system_filedir();
@@ -364,7 +369,7 @@ class file_system_filedir_test extends \advanced_testcase {
      * @covers ::get_contentpath_from_hash
      */
     public function test_get_contentpath_from_hash($hash, $hashdir) {
-        $method = new \ReflectionMethod(file_system_filedir::class, 'get_contentpath_from_hash');
+        $method = new ReflectionMethod(file_system_filedir::class, 'get_contentpath_from_hash');
         $method->setAccessible(true);
 
         $fs = new file_system_filedir();
@@ -388,7 +393,7 @@ class file_system_filedir_test extends \advanced_testcase {
         global $CFG;
 
         $fs = new file_system_filedir();
-        $method = new \ReflectionMethod(file_system_filedir::class, 'get_trash_fullpath_from_hash');
+        $method = new ReflectionMethod(file_system_filedir::class, 'get_trash_fullpath_from_hash');
         $method->setAccessible(true);
         $result = $method->invokeArgs($fs, array($hash));
 
@@ -410,7 +415,7 @@ class file_system_filedir_test extends \advanced_testcase {
         global $CFG;
 
         $fs = new file_system_filedir();
-        $method = new \ReflectionMethod(file_system_filedir::class, 'get_trash_fulldir_from_hash');
+        $method = new ReflectionMethod(file_system_filedir::class, 'get_trash_fulldir_from_hash');
         $method->setAccessible(true);
         $result = $method->invokeArgs($fs, array($hash));
 
@@ -428,7 +433,7 @@ class file_system_filedir_test extends \advanced_testcase {
         global $CFG;
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
         $filedircontent = [
             $contenthash => $filecontent,
         ];
@@ -436,12 +441,12 @@ class file_system_filedir_test extends \advanced_testcase {
 
         $fs = $this->getMockBuilder(file_system_filedir::class)
             ->disableOriginalConstructor()
-            ->onlyMethods([
+            ->setMethods([
                 'get_local_path_from_storedfile',
             ])
             ->getMock();
 
-        $file = $this->getMockBuilder(\stored_file::class)
+        $file = $this->getMockBuilder(stored_file::class)
             ->disableOriginalConstructor()
             ->getMock();
 
@@ -467,7 +472,7 @@ class file_system_filedir_test extends \advanced_testcase {
         // Setup the filedir.
         // This contains a virtual file which has a cache mismatch.
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
 
         $trashdircontent = [
             '0f' => [
@@ -479,13 +484,13 @@ class file_system_filedir_test extends \advanced_testcase {
 
         $vfileroot = $this->setup_vfile_root([], $trashdircontent);
 
-        $file = new \stored_file(get_file_storage(), (object) [
+        $file = new stored_file(get_file_storage(), (object) [
             'contenthash' => $contenthash,
             'filesize' => strlen($filecontent),
         ]);
 
         $fs = new file_system_filedir();
-        $method = new \ReflectionMethod(file_system_filedir::class, 'recover_file');
+        $method = new ReflectionMethod(file_system_filedir::class, 'recover_file');
         $method->setAccessible(true);
         $result = $method->invokeArgs($fs, array($file));
 
@@ -507,7 +512,7 @@ class file_system_filedir_test extends \advanced_testcase {
         // Setup the filedir.
         // This contains a virtual file which has a cache mismatch.
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
 
         $filedircontent = $trashdircontent = [
             '0f' => [
@@ -519,13 +524,13 @@ class file_system_filedir_test extends \advanced_testcase {
 
         $vfileroot = $this->setup_vfile_root($filedircontent, $trashdircontent);
 
-        $file = new \stored_file(get_file_storage(), (object) [
+        $file = new stored_file(get_file_storage(), (object) [
             'contenthash' => $contenthash,
             'filesize' => strlen($filecontent),
         ]);
 
         $fs = new file_system_filedir();
-        $method = new \ReflectionMethod(file_system_filedir::class, 'recover_file');
+        $method = new ReflectionMethod(file_system_filedir::class, 'recover_file');
         $method->setAccessible(true);
         $result = $method->invokeArgs($fs, array($file));
 
@@ -546,7 +551,7 @@ class file_system_filedir_test extends \advanced_testcase {
         // Setup the filedir.
         // This contains a virtual file which has a cache mismatch.
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
 
         $trashdircontent = [
             '0f' => [
@@ -557,13 +562,13 @@ class file_system_filedir_test extends \advanced_testcase {
         ];
         $vfileroot = $this->setup_vfile_root([], $trashdircontent);
 
-        $file = new \stored_file(get_file_storage(), (object) [
+        $file = new stored_file(get_file_storage(), (object) [
             'contenthash' => $contenthash,
             'filesize' => strlen($filecontent) + 1,
         ]);
 
         $fs = new file_system_filedir();
-        $method = new \ReflectionMethod(file_system_filedir::class, 'recover_file');
+        $method = new ReflectionMethod(file_system_filedir::class, 'recover_file');
         $method->setAccessible(true);
         $result = $method->invokeArgs($fs, array($file));
 
@@ -583,7 +588,7 @@ class file_system_filedir_test extends \advanced_testcase {
         // Setup the filedir.
         // This contains a virtual file which has a cache mismatch.
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
 
         $trashdircontent = [
             '0f' => [
@@ -594,13 +599,13 @@ class file_system_filedir_test extends \advanced_testcase {
         ];
         $vfileroot = $this->setup_vfile_root([], $trashdircontent);
 
-        $file = new \stored_file(get_file_storage(), (object) [
+        $file = new stored_file(get_file_storage(), (object) [
             'contenthash' => $contenthash . " different",
             'filesize' => strlen($filecontent),
         ]);
 
         $fs = new file_system_filedir();
-        $method = new \ReflectionMethod(file_system_filedir::class, 'recover_file');
+        $method = new ReflectionMethod(file_system_filedir::class, 'recover_file');
         $method->setAccessible(true);
         $result = $method->invokeArgs($fs, array($file));
 
@@ -621,20 +626,20 @@ class file_system_filedir_test extends \advanced_testcase {
         // Setup the filedir.
         // This contains a virtual file which has a cache mismatch.
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
 
         $trashdircontent = [
             $contenthash => $filecontent,
         ];
         $vfileroot = $this->setup_vfile_root([], $trashdircontent);
 
-        $file = new \stored_file(get_file_storage(), (object) [
+        $file = new stored_file(get_file_storage(), (object) [
             'contenthash' => $contenthash,
             'filesize' => strlen($filecontent),
         ]);
 
         $fs = new file_system_filedir();
-        $method = new \ReflectionMethod(file_system_filedir::class, 'recover_file');
+        $method = new ReflectionMethod(file_system_filedir::class, 'recover_file');
         $method->setAccessible(true);
         $result = $method->invokeArgs($fs, array($file));
 
@@ -654,7 +659,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
         $filedircontent = [
             '0f' => [],
         ];
@@ -668,13 +673,13 @@ class file_system_filedir_test extends \advanced_testcase {
             ->chmod(0444)
             ->chown(\org\bovigo\vfs\vfsStream::OWNER_USER_2);
 
-        $file = new \stored_file(get_file_storage(), (object) [
+        $file = new stored_file(get_file_storage(), (object) [
             'contenthash' => $contenthash,
             'filesize' => strlen($filecontent),
         ]);
 
         $fs = new file_system_filedir();
-        $method = new \ReflectionMethod(file_system_filedir::class, 'recover_file');
+        $method = new ReflectionMethod(file_system_filedir::class, 'recover_file');
         $method->setAccessible(true);
         $result = $method->invokeArgs($fs, array($file));
 
@@ -694,7 +699,7 @@ class file_system_filedir_test extends \advanced_testcase {
         // Setup the filedir.
         // This contains a virtual file which has a cache mismatch.
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
         $sourcedircontent = [
             'file' => $filecontent,
         ];
@@ -711,7 +716,7 @@ class file_system_filedir_test extends \advanced_testcase {
 
         // Test the output.
         $this->assertEquals($contenthash, $result[0]);
-        $this->assertEquals(\core_text::strlen($filecontent), $result[1]);
+        $this->assertEquals(core_text::strlen($filecontent), $result[1]);
         $this->assertTrue($result[2]);
 
         $this->assertEquals($filecontent, $vfileroot->getChild('filedir/0f/f3/' . $contenthash)->getContent());
@@ -730,7 +735,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $vfileroot = $this->setup_vfile_root();
 
         $this->expectException('file_exception');
-        $this->expectExceptionMessageMatches(
+        $this->expectExceptionMessageRegExp(
             '/Cannot read file\. Either the file does not exist or there is a permission problem\./');
 
         $fs = new file_system_filedir();
@@ -747,7 +752,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
         $sourcedir = [
             'file' => $filecontent,
         ];
@@ -769,7 +774,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
         $filedircontent = [
             '0f' => [
                 'f3' => [
@@ -793,7 +798,7 @@ class file_system_filedir_test extends \advanced_testcase {
 
         // Test the output.
         $this->assertEquals($contenthash, $result[0]);
-        $this->assertEquals(\core_text::strlen($filecontent), $result[1]);
+        $this->assertEquals(core_text::strlen($filecontent), $result[1]);
         $this->assertFalse($result[2]);
 
         // Fetch the new file structure.
@@ -814,7 +819,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
         $filedircontent = [
             '0f' => [],
         ];
@@ -829,8 +834,8 @@ class file_system_filedir_test extends \advanced_testcase {
             ->chown(\org\bovigo\vfs\vfsStream::OWNER_USER_2);
 
         $this->expectException('file_exception');
-        $this->expectExceptionMessageMatches(
-            "/Cannot create local file pool directories. Please verify permissions in dataroot./");
+        $this->expectExceptionMessageRegExp(
+            "/Can not create local file pool directories, please verify permissions in dataroot./");
 
         // Attempt to add the file to the file pool.
         $fs = new file_system_filedir();
@@ -848,7 +853,7 @@ class file_system_filedir_test extends \advanced_testcase {
         global $CFG;
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
         $vfileroot = $this->setup_vfile_root();
 
         // Note, the vfs file system does not support locks - prevent file locking here.
@@ -860,7 +865,7 @@ class file_system_filedir_test extends \advanced_testcase {
 
         // Test the output.
         $this->assertEquals($contenthash, $result[0]);
-        $this->assertEquals(\core_text::strlen($filecontent), $result[1]);
+        $this->assertEquals(core_text::strlen($filecontent), $result[1]);
         $this->assertTrue($result[2]);
     }
 
@@ -874,7 +879,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
 
         $filedircontent = [
             '0f' => [],
@@ -887,8 +892,8 @@ class file_system_filedir_test extends \advanced_testcase {
             ->chown(\org\bovigo\vfs\vfsStream::OWNER_USER_2);
 
         $this->expectException('file_exception');
-        $this->expectExceptionMessageMatches(
-            "/Cannot create local file pool directories. Please verify permissions in dataroot./");
+        $this->expectExceptionMessageRegExp(
+            "/Can not create local file pool directories, please verify permissions in dataroot./");
 
         // Attempt to add the file to the file pool.
         $fs = new file_system_filedir();
@@ -906,7 +911,7 @@ class file_system_filedir_test extends \advanced_testcase {
         global $CFG;
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
         $filedircontent = [
             '0f' => [
                 'f3' => [
@@ -926,7 +931,7 @@ class file_system_filedir_test extends \advanced_testcase {
 
         // Test the output.
         $this->assertEquals($contenthash, $result[0]);
-        $this->assertEquals(\core_text::strlen($filecontent), $result[1]);
+        $this->assertEquals(core_text::strlen($filecontent), $result[1]);
         $this->assertFalse($result[2]);
     }
 
@@ -939,7 +944,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
         $vfileroot = $this->setup_vfile_root();
 
         $fs = new file_system_filedir();
@@ -962,7 +967,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
 
         $filedircontent = $trashdircontent = [
             '0f' => [
@@ -992,7 +997,7 @@ class file_system_filedir_test extends \advanced_testcase {
         global $DB;
 
         $DB = $this->getMockBuilder(\moodle_database::class)
-            ->onlyMethods(['record_exists'])
+            ->setMethods(['record_exists'])
             ->getMockForAbstractClass();
 
         $DB->expects($this->never())
@@ -1000,7 +1005,7 @@ class file_system_filedir_test extends \advanced_testcase {
 
         $fs = new file_system_filedir();
 
-        $result = $fs->remove_file(\file_storage::hash_from_string(''));
+        $result = $fs->remove_file(file_storage::hash_from_string(''));
         $this->assertNull($result);
     }
 
@@ -1015,7 +1020,7 @@ class file_system_filedir_test extends \advanced_testcase {
         global $DB;
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
         $filedircontent = [
             '0f' => [
                 'f3' => [
@@ -1026,7 +1031,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $vfileroot = $this->setup_vfile_root($filedircontent);
 
         $DB = $this->getMockBuilder(\moodle_database::class)
-            ->onlyMethods(['record_exists'])
+            ->setMethods(['record_exists'])
             ->getMockForAbstractClass();
 
         $DB->method('record_exists')->willReturn(true);
@@ -1048,7 +1053,7 @@ class file_system_filedir_test extends \advanced_testcase {
         global $DB;
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
         $filedircontent = [
             '0f' => [
                 'f3' => [
@@ -1059,7 +1064,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $vfileroot = $this->setup_vfile_root($filedircontent);
 
         $DB = $this->getMockBuilder(\moodle_database::class)
-            ->onlyMethods(['record_exists'])
+            ->setMethods(['record_exists'])
             ->getMockForAbstractClass();
 
         $DB->method('record_exists')->willReturn(false);
@@ -1079,7 +1084,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $filecontent = 'example content';
-        $contenthash = \file_storage::hash_from_string($filecontent);
+        $contenthash = file_storage::hash_from_string($filecontent);
 
         $filedircontent = $trashdircontent = [
             '0f' => [
@@ -1091,7 +1096,7 @@ class file_system_filedir_test extends \advanced_testcase {
         $vfileroot = $this->setup_vfile_root($filedircontent, $trashdircontent);
 
         $fs = new file_system_filedir();
-        $method = new \ReflectionMethod(file_system_filedir::class, 'empty_trash');
+        $method = new ReflectionMethod(file_system_filedir::class, 'empty_trash');
         $method->setAccessible(true);
         $result = $method->invoke($fs);
 

@@ -183,7 +183,7 @@ function lesson_unseen_branch_jump($lesson, $userid) {
     }
 
     if (!$seenbranches = $lesson->get_content_pages_viewed($retakes, $userid, 'timeseen DESC')) {
-        throw new \moodle_exception('cannotfindrecords', 'lesson');
+        print_error('cannotfindrecords', 'lesson');
     }
 
     // get the lesson pages
@@ -237,7 +237,7 @@ function lesson_random_question_jump($lesson, $pageid) {
     // get the lesson pages
     $params = array ("lessonid" => $lesson->id);
     if (!$lessonpages = $DB->get_records_select("lesson_pages", "lessonid = :lessonid", $params)) {
-        throw new \moodle_exception('cannotfindpages', 'lesson');
+        print_error('cannotfindpages', 'lesson');
     }
 
     // go up the pages till branch table
@@ -301,11 +301,9 @@ function lesson_grade($lesson, $ntries, $userid = 0) {
             $attemptset[$useranswer->pageid][] = $useranswer;
         }
 
-        if (!empty($lesson->maxattempts)) {
-            // Drop all attempts that go beyond max attempts for the lesson.
-            foreach ($attemptset as $key => $set) {
-                $attemptset[$key] = array_slice($set, 0, $lesson->maxattempts);
-            }
+        // Drop all attempts that go beyond max attempts for the lesson
+        foreach ($attemptset as $key => $set) {
+            $attemptset[$key] = array_slice($set, 0, $lesson->maxattempts);
         }
 
         // get only the pages and their answers that the user answered
@@ -570,8 +568,6 @@ function lesson_menu_block_contents($cmid, $lesson) {
 /**
  * Adds header buttons to the page for the lesson
  *
- * @deprecated since Moodle 4.0 in favour of tertiary navigation.
- * @todo MDL-73545 This will be deleted in Moodle 4.4
  * @param object $cm
  * @param object $context
  * @param bool $extraeditbuttons
@@ -579,12 +575,9 @@ function lesson_menu_block_contents($cmid, $lesson) {
  */
 function lesson_add_header_buttons($cm, $context, $extraeditbuttons=false, $lessonpageid=null) {
     global $CFG, $PAGE, $OUTPUT;
-
-    debugging('lesson_add_header_buttons() is deprecated in favour of tertiary navigation.', DEBUG_DEVELOPER);
-
     if (has_capability('mod/lesson:edit', $context) && $extraeditbuttons) {
         if ($lessonpageid === null) {
-            throw new \moodle_exception('invalidpageid', 'lesson');
+            print_error('invalidpageid', 'lesson');
         }
         if (!empty($lessonpageid) && $lessonpageid != LESSON_EOL) {
             $url = new moodle_url('/mod/lesson/editpage.php', array(
@@ -662,14 +655,14 @@ function lesson_process_group_deleted_in_course($courseid, $groupid = null) {
     if ($groupid) {
         $params['groupid'] = $groupid;
         // We just update the group that was deleted.
-        $sql = "SELECT o.id, o.lessonid, o.groupid
+        $sql = "SELECT o.id, o.lessonid
                   FROM {lesson_overrides} o
                   JOIN {lesson} lesson ON lesson.id = o.lessonid
                  WHERE lesson.course = :courseid
                    AND o.groupid = :groupid";
     } else {
         // No groupid, we update all orphaned group overrides for all lessons in course.
-        $sql = "SELECT o.id, o.lessonid, o.groupid
+        $sql = "SELECT o.id, o.lessonid
                   FROM {lesson_overrides} o
                   JOIN {lesson} lesson ON lesson.id = o.lessonid
              LEFT JOIN {groups} grp ON grp.id = o.groupid
@@ -677,15 +670,11 @@ function lesson_process_group_deleted_in_course($courseid, $groupid = null) {
                    AND o.groupid IS NOT NULL
                    AND grp.id IS NULL";
     }
-    $records = $DB->get_records_sql($sql, $params);
+    $records = $DB->get_records_sql_menu($sql, $params);
     if (!$records) {
         return; // Nothing to do.
     }
     $DB->delete_records_list('lesson_overrides', 'id', array_keys($records));
-    $cache = cache::make('mod_lesson', 'overrides');
-    foreach ($records as $record) {
-        $cache->delete("{$record->lessonid}_g_{$record->groupid}");
-    }
 }
 
 /**
@@ -714,14 +703,12 @@ function lesson_get_overview_report_table_and_data(lesson $lesson, $currentgroup
         list($esql, $params) = get_enrolled_sql($context, '', $currentgroup, true);
         list($sort, $sortparams) = users_order_by_sql('u');
 
-        // TODO Does not support custom user profile fields (MDL-70456).
-        $userfieldsapi = \core_user\fields::for_identity($context, false)->with_userpic();
-        $ufields = $userfieldsapi->get_sql('u', false, '', '', false)->selects;
-        $extrafields = $userfieldsapi->get_required_fields([\core_user\fields::PURPOSE_IDENTITY]);
+        $extrafields = get_extra_user_fields($context);
 
         $params['a1lessonid'] = $lesson->id;
         $params['b1lessonid'] = $lesson->id;
         $params['c1lessonid'] = $lesson->id;
+        $ufields = user_picture::fields('u', $extrafields);
         $sql = "SELECT DISTINCT $ufields
                 FROM {user} u
                 JOIN (
@@ -912,7 +899,7 @@ function lesson_get_overview_report_table_and_data(lesson $lesson, $currentgroup
     $headers = [get_string('name')];
 
     foreach ($extrafields as $field) {
-        $headers[] = \core_user\fields::get_display_name($field);
+        $headers[] = get_user_field_name($field);
     }
 
     $caneditlesson = has_capability('mod/lesson:edit', $context);
@@ -951,6 +938,9 @@ function lesson_get_overview_report_table_and_data(lesson $lesson, $currentgroup
     if ($data->lessonscored) {
         $table->align[$colcount - 2] = 'left';
     }
+
+    $table->wrap = [];
+    $table->wrap = array_pad($table->wrap, $colcount, 'nowrap');
 
     $table->attributes['class'] = 'table table-striped';
 
@@ -1468,11 +1458,9 @@ abstract class lesson_add_page_form_base extends moodleform {
      * @param string $label, null means default
      * @param bool $required
      * @param string $format
-     * @param array $help Add help text via the addHelpButton. Must be an array which contains the string identifier and
-     *                      component as it's elements
      * @return void
      */
-    protected final function add_answer($count, $label = null, $required = false, $format= '', array $help = []) {
+    protected final function add_answer($count, $label = null, $required = false, $format= '') {
         if ($label === null) {
             $label = get_string('answer', 'lesson');
         }
@@ -1485,16 +1473,12 @@ abstract class lesson_add_page_form_base extends moodleform {
             $this->_form->setDefault('answer_editor['.$count.']', array('text' => '', 'format' => FORMAT_HTML));
         } else {
             $this->_form->addElement('text', 'answer_editor['.$count.']', $label,
-                array('size' => '50', 'maxlength' => '200'));
+                    array('size' => '50', 'maxlength' => '200'));
             $this->_form->setType('answer_editor['.$count.']', PARAM_TEXT);
         }
 
         if ($required) {
             $this->_form->addRule('answer_editor['.$count.']', get_string('required'), 'required', null, 'client');
-        }
-
-        if ($help) {
-            $this->_form->addHelpButton("answer_editor[$count]", $help['identifier'], $help['component']);
         }
     }
     /**
@@ -1682,7 +1666,7 @@ class lesson extends lesson_base {
         global $DB;
 
         if (!$lesson = $DB->get_record('lesson', array('id' => $lessonid))) {
-            throw new \moodle_exception('invalidcoursemodule');
+            print_error('invalidcoursemodule');
         }
         return new lesson($lesson);
     }
@@ -1746,10 +1730,8 @@ class lesson extends lesson_base {
                 'instance' => $this->properties->id);
         if (isset($override->userid)) {
             $conds['userid'] = $override->userid;
-            $cachekey = "{$cm->instance}_u_{$override->userid}";
         } else {
             $conds['groupid'] = $override->groupid;
-            $cachekey = "{$cm->instance}_g_{$override->groupid}";
         }
         $events = $DB->get_records('event', $conds);
         foreach ($events as $event) {
@@ -1758,7 +1740,6 @@ class lesson extends lesson_base {
         }
 
         $DB->delete_records('lesson_overrides', array('id' => $overrideid));
-        cache::make('mod_lesson', 'overrides')->delete($cachekey);
 
         // Set the common parameters for one of the events we will be triggering.
         $params = array(
@@ -2068,7 +2049,7 @@ class lesson extends lesson_base {
             if (!$this->loadedallpages) {
                 $firstpageid = $DB->get_field('lesson_pages', 'id', array('lessonid'=>$this->properties->id, 'prevpageid'=>0));
                 if (!$firstpageid) {
-                    throw new \moodle_exception('cannotfindfirstpage', 'lesson');
+                    print_error('cannotfindfirstpage', 'lesson');
                 }
                 $this->firstpageid = $firstpageid;
             } else {
@@ -2089,7 +2070,7 @@ class lesson extends lesson_base {
             if (!$this->loadedallpages) {
                 $lastpageid = $DB->get_field('lesson_pages', 'id', array('lessonid'=>$this->properties->id, 'nextpageid'=>0));
                 if (!$lastpageid) {
-                    throw new \moodle_exception('cannotfindlastpage', 'lesson');
+                    print_error('cannotfindlastpage', 'lesson');
                 }
                 $this->lastpageid = $lastpageid;
             } else {
@@ -2330,7 +2311,7 @@ class lesson extends lesson_base {
                 if ($instancename) {
                     return html_writer::link(new moodle_url('/mod/'.$modname.'/view.php',
                         array('id' => $this->properties->activitylink)), get_string('activitylinkname',
-                        'lesson', $instancename), array('class' => 'centerpadded lessonbutton standardbutton pr-3'));
+                        'lesson', $instancename), array('class' => 'centerpadded lessonbutton standardbutton p-r-1'));
                 }
             }
         }
@@ -2718,7 +2699,7 @@ class lesson extends lesson_base {
         $pages = $this->load_all_pages();
 
         if (!array_key_exists($pageid, $pages) || ($after!=0 && !array_key_exists($after, $pages))) {
-            throw new \moodle_exception('cannotfindpages', 'lesson', "$CFG->wwwroot/mod/lesson/edit.php?id=$cm->id");
+            print_error('cannotfindpages', 'lesson', "$CFG->wwwroot/mod/lesson/edit.php?id=$cm->id");
         }
 
         $pagetomove = clone($pages[$pageid]);
@@ -3162,7 +3143,7 @@ class lesson extends lesson_base {
                         $this->add_message(get_string("numberofcorrectanswers", "lesson", $gradeinfo->earned), 'notify');
                         if ($this->properties->grade != GRADE_TYPE_NONE) {
                             $a = new stdClass;
-                            $a->grade = format_float($gradeinfo->grade * $this->properties->grade / 100, 1);
+                            $a->grade = number_format($gradeinfo->grade * $this->properties->grade / 100, 1);
                             $a->total = $this->properties->grade;
                             $this->add_message(get_string('yourcurrentgradeisoutof', 'lesson', $a), 'notify');
                         }
@@ -3504,7 +3485,6 @@ class lesson extends lesson_base {
             'displayscorewithessays' => false,
             'displayscorewithoutessays' => false,
             'yourcurrentgradeisoutof' => false,
-            'yourcurrentgradeis' => false,
             'eolstudentoutoftimenoanswers' => false,
             'welldone' => false,
             'progressbar' => false,
@@ -3595,6 +3575,12 @@ class lesson extends lesson_base {
                     } else {
                         $data->displayscorewithoutessays = $a;
                     }
+                    if ($this->properties->grade != GRADE_TYPE_NONE) {
+                        $a = new stdClass;
+                        $a->grade = number_format($gradeinfo->grade * $this->properties->grade / 100, 1);
+                        $a->total = $this->properties->grade;
+                        $data->yourcurrentgradeisoutof = $a;
+                    }
 
                     $grade = new stdClass();
                     $grade->lessonid = $this->properties->id;
@@ -3612,25 +3598,6 @@ class lesson extends lesson_base {
                     } else {
                         $newgradeid = $DB->insert_record("lesson_grades", $grade);
                     }
-
-                    // Update central gradebook.
-                    lesson_update_grades($this, $USER->id);
-
-                    // Print grade (grade type Point).
-                    if ($this->properties->grade > 0) {
-                        $a = new stdClass;
-                        $a->grade = format_float($gradeinfo->grade * $this->properties->grade / 100, 1);
-                        $a->total = $this->properties->grade;
-                        $data->yourcurrentgradeisoutof = $a;
-                    }
-
-                    // Print grade (grade type Scale).
-                    if ($this->properties->grade < 0) {
-                        // Grade type is Scale.
-                        $grades = grade_get_grades($course->id, 'mod', 'lesson', $cm->instance, $USER->id);
-                        $grade = reset($grades->items[0]->grades);
-                        $data->yourcurrentgradeis = $grade->str_grade;
-                    }
                 } else {
                     if ($this->properties->timelimit) {
                         if ($outoftime == 'normal') {
@@ -3641,15 +3608,14 @@ class lesson extends lesson_base {
                             $grade->completed = time();
                             $newgradeid = $DB->insert_record("lesson_grades", $grade);
                             $data->eolstudentoutoftimenoanswers = true;
-
-                            // Update central gradebook.
-                            lesson_update_grades($this, $USER->id);
                         }
                     } else {
                         $data->welldone = true;
                     }
                 }
 
+                // Update central gradebook.
+                lesson_update_grades($this, $USER->id);
                 $data->progresscompleted = $progresscompleted;
             }
         } else {
@@ -3686,23 +3652,6 @@ class lesson extends lesson_base {
             $data->activitylink = $this->link_for_activitylink();
         }
         return $data;
-    }
-
-    /**
-     * Returns the last "legal" attempt from the list of student attempts.
-     *
-     * @param array $attempts The list of student attempts.
-     * @return stdClass The updated fom data.
-     */
-    public function get_last_attempt(array $attempts): stdClass {
-        // If there are more tries than the max that is allowed, grab the last "legal" attempt.
-        if (!empty($this->maxattempts) && (count($attempts) > $this->maxattempts)) {
-            $lastattempt = $attempts[$this->maxattempts - 1];
-        } else {
-            // Grab the last attempt since there's no limit to the max attempts or the user has made fewer attempts than the max.
-            $lastattempt = end($attempts);
-        }
-        return $lastattempt;
     }
 }
 
@@ -3920,7 +3869,7 @@ abstract class lesson_page extends lesson_base {
         if ($properties->pageid) {
             $prevpage = $DB->get_record("lesson_pages", array("id" => $properties->pageid), 'id, nextpageid');
             if (!$prevpage) {
-                throw new \moodle_exception('cannotfindpages', 'lesson');
+                print_error('cannotfindpages', 'lesson');
             }
             $newpage->prevpageid = $prevpage->id;
             $newpage->nextpageid = $prevpage->nextpageid;
@@ -3987,7 +3936,7 @@ abstract class lesson_page extends lesson_base {
         } else {
             $page = $DB->get_record("lesson_pages", array("id" => $id));
             if (!$page) {
-                throw new \moodle_exception('cannotfindpages', 'lesson');
+                print_error('cannotfindpages', 'lesson');
             }
         }
         $manager = lesson_page_type_manager::get($lesson);
@@ -4177,7 +4126,7 @@ abstract class lesson_page extends lesson_base {
                     'userid' => $USER->id, 'pageid' => $this->properties->id, 'retry' => $nretakes));
 
                 // Check if they have reached (or exceeded) the maximum number of attempts allowed.
-                if (!empty($this->lesson->maxattempts) && $nattempts >= $this->lesson->maxattempts) {
+                if ($nattempts >= $this->lesson->maxattempts) {
                     $result->maxattemptsreached = true;
                     $result->feedback = get_string('maximumnumberofattemptsreached', 'lesson');
                     $result->newpageid = $this->lesson->get_next_page($this->properties->nextpageid);
@@ -4244,20 +4193,15 @@ abstract class lesson_page extends lesson_base {
                 }
                 // "number of attempts remaining" message if $this->lesson->maxattempts > 1
                 // displaying of message(s) is at the end of page for more ergonomic display
-                // If we are showing the number of remaining attempts, we need to show it regardless of what the next
-                // jump to page is.
-                if (!$result->correctanswer) {
-                    // Retrieve the number of attempts left counter for displaying at bottom of feedback page.
-                    if ($result->newpageid == 0 && !empty($this->lesson->maxattempts) && $nattempts >= $this->lesson->maxattempts) {
+                if (!$result->correctanswer && ($result->newpageid == 0)) {
+                    // retreive the number of attempts left counter for displaying at bottom of feedback page
+                    if ($nattempts >= $this->lesson->maxattempts) {
                         if ($this->lesson->maxattempts > 1) { // don't bother with message if only one attempt
                             $result->maxattemptsreached = true;
                         }
                         $result->newpageid = LESSON_NEXTPAGE;
                     } else if ($this->lesson->maxattempts > 1) { // don't bother with message if only one attempt
                         $result->attemptsremaining = $this->lesson->maxattempts - $nattempts;
-                        if ($result->attemptsremaining == 0) {
-                            $result->maxattemptsreached = true;
-                        }
                     }
                 }
             }
@@ -4311,7 +4255,7 @@ abstract class lesson_page extends lesson_base {
                 $options->attemptid = isset($attempt) ? $attempt->id : null;
 
                 $result->feedback .= $OUTPUT->box(format_text($this->get_contents(), $this->properties->contentsformat, $options),
-                        'generalbox boxaligncenter py-3');
+                        'generalbox boxaligncenter p-y-1');
                 $result->feedback .= '<div class="correctanswer generalbox"><em>'
                         . get_string("youranswer", "lesson").'</em> : <div class="studentanswer mt-2 mb-2">';
 
@@ -4586,7 +4530,6 @@ abstract class lesson_page extends lesson_base {
                     $this->answers[$i]->lessonid = $this->lesson->id;
                     $this->answers[$i]->pageid = $this->id;
                     $this->answers[$i]->timecreated = $this->timecreated;
-                    $this->answers[$i]->answer = null;
                 }
 
                 if (isset($properties->answer_editor[$i])) {
@@ -4599,9 +4542,6 @@ abstract class lesson_page extends lesson_base {
                         $this->answers[$i]->answer = $properties->answer_editor[$i];
                         $this->answers[$i]->answerformat = FORMAT_MOODLE;
                     }
-                } else {
-                    // If there is no data posted which means we want to reset the stored values.
-                    $this->answers[$i]->answer = null;
                 }
 
                 if (!empty($properties->response_editor[$i]) && is_array($properties->response_editor[$i])) {
@@ -5234,7 +5174,7 @@ class lesson_page_type_manager {
     public function load_page($pageid, lesson $lesson) {
         global $DB;
         if (!($page =$DB->get_record('lesson_pages', array('id'=>$pageid, 'lessonid'=>$lesson->id)))) {
-            throw new \moodle_exception('cannotfindpages', 'lesson');
+            print_error('cannotfindpages', 'lesson');
         }
         $pagetype = get_class($this->types[$page->qtype]);
         $page = new $pagetype($page, $lesson);

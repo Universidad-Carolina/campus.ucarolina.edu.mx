@@ -32,13 +32,8 @@ defined('MOODLE_INTERNAL') || die();
  * @copyright 2015 Totara Learning Solutions Ltd {@link http://www.totaralms.com/}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @author    Petr Skoda <petr.skoda@totaralms.com>
- * @covers \core_date
- * @coversDefaultClass \core_date
  */
-class date_test extends advanced_testcase {
-    /**
-     * @covers ::get_default_php_timezone
-     */
+class core_date_testcase extends advanced_testcase {
     public function test_get_default_php_timezone() {
         $this->resetAfterTest();
 
@@ -55,9 +50,6 @@ class date_test extends advanced_testcase {
         $this->assertSame('GMT', core_date::get_default_php_timezone());
     }
 
-    /**
-     * @covers ::normalise_timezone
-     */
     public function test_normalise_timezone() {
         $this->resetAfterTest();
 
@@ -122,9 +114,6 @@ class date_test extends advanced_testcase {
         $this->assertSame('Pacific/Auckland', core_date::normalise_timezone($tz));
     }
 
-    /**
-     * @covers ::normalise_timezone
-     */
     public function test_windows_conversion() {
         $file = __DIR__ . '/fixtures/timezonewindows.xml';
 
@@ -177,18 +166,7 @@ class date_test extends advanced_testcase {
         }
     }
 
-    /**
-     * We are only checking lang strings existence here, not code.
-     *
-     * @coversNothing
-     */
-    public function test_timezone_all_lang_strings() {
-        // We only run this test when PHPUNIT_LONGTEST is enabled, test_get_localised_timezone()
-        // is already checking the names of a few, hopefully stable enough to be run always.
-        if (!PHPUNIT_LONGTEST) {
-            $this->markTestSkipped('PHPUNIT_LONGTEST is not defined');
-        }
-
+    public function test_timezone_lang_strings() {
         $phpzones = DateTimeZone::listIdentifiers();
         $manager = get_string_manager();
         foreach ($phpzones as $tz) {
@@ -197,9 +175,6 @@ class date_test extends advanced_testcase {
         }
     }
 
-    /**
-     * @covers ::get_localised_timezone
-     */
     public function test_get_localised_timezone() {
         $this->resetAfterTest();
 
@@ -207,12 +182,6 @@ class date_test extends advanced_testcase {
 
         $result = core_date::get_localised_timezone('Pacific/Auckland');
         $this->assertSame('Pacific/Auckland', $result);
-
-        $result = core_date::get_localised_timezone('Europe/Madrid');
-        $this->assertSame('Europe/Madrid', $result);
-
-        $result = core_date::get_localised_timezone('America/New_York');
-        $this->assertSame('America/New_York', $result);
 
         $result = core_date::get_localised_timezone('99');
         $this->assertSame('Server timezone (Pacific/Auckland)', $result);
@@ -233,9 +202,6 @@ class date_test extends advanced_testcase {
         $this->assertSame('UTC', $result);
     }
 
-    /**
-     * @covers ::get_list_of_timezones
-     */
     public function test_get_list_of_timezones() {
         $this->resetAfterTest();
 
@@ -284,9 +250,6 @@ class date_test extends advanced_testcase {
 
     }
 
-    /**
-     * @covers ::get_server_timezone
-     */
     public function test_get_server_timezone() {
         global $CFG;
         $this->resetAfterTest();
@@ -312,9 +275,6 @@ class date_test extends advanced_testcase {
         $this->assertSame('Europe/Prague', core_date::get_server_timezone());
     }
 
-    /**
-     * @covers ::get_server_timezone_object
-     */
     public function test_get_server_timezone_object() {
         $this->resetAfterTest();
 
@@ -327,9 +287,6 @@ class date_test extends advanced_testcase {
         }
     }
 
-    /**
-     * @covers ::set_default_server_timezone
-     */
     public function test_set_default_server_timezone() {
         global $CFG;
         $this->resetAfterTest();
@@ -448,7 +405,6 @@ class date_test extends advanced_testcase {
 
     /**
      * @dataProvider legacyUserTimezoneProvider
-     * @covers ::get_user_timezone
      * @param string $tz The legacy timezone.
      * @param string $expected The expected converted timezone.
      */
@@ -457,9 +413,6 @@ class date_test extends advanced_testcase {
         $this->assertEquals($expected, core_date::get_user_timezone($tz));
     }
 
-    /**
-     * @covers ::get_user_timezone
-     */
     public function test_get_user_timezone() {
         global $CFG, $USER;
         $this->resetAfterTest();
@@ -596,9 +549,6 @@ class date_test extends advanced_testcase {
         $this->assertSame('Pacific/Auckland', core_date::get_user_timezone($tz));
     }
 
-    /**
-     * @covers ::get_user_timezone_object
-     */
     public function test_get_user_timezone_object() {
         global $CFG, $USER;
         $this->resetAfterTest();

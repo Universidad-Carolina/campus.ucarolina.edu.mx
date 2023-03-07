@@ -14,18 +14,28 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core;
+/**
+ * Unit tests for sessionlib.php file.
+ *
+ * @package   core
+ * @category  phpunit
+ * @author    Petr Skoda <petr.skoda@totaralms.com>
+ * @copyright 2014 Totara Learning Solutions Ltd {@link http://www.totaralms.com/}
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * Unit tests for sessionlib.php file.
  *
  * @package   core
- * @category  test
+ * @category  phpunit
  * @author    Petr Skoda <petr.skoda@totaralms.com>
  * @copyright 2014 Totara Learning Solutions Ltd {@link http://www.totaralms.com/}
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class sessionlib_test extends \advanced_testcase {
+class core_sessionlib_testcase extends advanced_testcase {
     public function test_cron_setup_user() {
         global $PAGE, $USER, $SESSION, $SITE, $CFG;
         $this->resetAfterTest();
@@ -40,7 +50,7 @@ class sessionlib_test extends \advanced_testcase {
 
         cron_setup_user();
         $this->assertSame($admin->id, $USER->id);
-        $this->assertSame($PAGE->context, \context_course::instance($SITE->id));
+        $this->assertSame($PAGE->context, context_course::instance($SITE->id));
         $this->assertSame($CFG->timezone, $USER->timezone);
         $this->assertSame('', $USER->lang);
         $this->assertSame('', $USER->theme);
@@ -54,7 +64,7 @@ class sessionlib_test extends \advanced_testcase {
 
         cron_setup_user(null, $course);
         $this->assertSame($admin->id, $USER->id);
-        $this->assertSame($PAGE->context, \context_course::instance($course->id));
+        $this->assertSame($PAGE->context, context_course::instance($course->id));
         $this->assertSame($adminsession, $SESSION);
         $this->assertSame($GLOBALS['SESSION'], $_SESSION['SESSION']);
         $this->assertSame($GLOBALS['SESSION'], $SESSION);
@@ -63,7 +73,7 @@ class sessionlib_test extends \advanced_testcase {
 
         cron_setup_user($user1);
         $this->assertSame($user1->id, $USER->id);
-        $this->assertSame($PAGE->context, \context_course::instance($SITE->id));
+        $this->assertSame($PAGE->context, context_course::instance($SITE->id));
         $this->assertNotSame($adminsession, $SESSION);
         $this->assertObjectNotHasAttribute('test1', $SESSION);
         $this->assertEmpty((array)$SESSION);
@@ -76,7 +86,7 @@ class sessionlib_test extends \advanced_testcase {
 
         cron_setup_user($user1);
         $this->assertSame($user1->id, $USER->id);
-        $this->assertSame($PAGE->context, \context_course::instance($SITE->id));
+        $this->assertSame($PAGE->context, context_course::instance($SITE->id));
         $this->assertNotSame($adminsession, $SESSION);
         $this->assertSame($usersession1, $SESSION);
         $this->assertSame($GLOBALS['SESSION'], $_SESSION['SESSION']);
@@ -86,7 +96,7 @@ class sessionlib_test extends \advanced_testcase {
 
         cron_setup_user($user2);
         $this->assertSame($user2->id, $USER->id);
-        $this->assertSame($PAGE->context, \context_course::instance($SITE->id));
+        $this->assertSame($PAGE->context, context_course::instance($SITE->id));
         $this->assertNotSame($adminsession, $SESSION);
         $this->assertNotSame($usersession1, $SESSION);
         $this->assertEmpty((array)$SESSION);
@@ -99,7 +109,7 @@ class sessionlib_test extends \advanced_testcase {
 
         cron_setup_user($user2, $course);
         $this->assertSame($user2->id, $USER->id);
-        $this->assertSame($PAGE->context, \context_course::instance($course->id));
+        $this->assertSame($PAGE->context, context_course::instance($course->id));
         $this->assertNotSame($adminsession, $SESSION);
         $this->assertNotSame($usersession1, $SESSION);
         $this->assertSame($usersession2, $SESSION);
@@ -110,7 +120,7 @@ class sessionlib_test extends \advanced_testcase {
 
         cron_setup_user($user1);
         $this->assertSame($user1->id, $USER->id);
-        $this->assertSame($PAGE->context, \context_course::instance($SITE->id));
+        $this->assertSame($PAGE->context, context_course::instance($SITE->id));
         $this->assertNotSame($adminsession, $SESSION);
         $this->assertNotSame($usersession1, $SESSION);
         $this->assertEmpty((array)$SESSION);
@@ -121,7 +131,7 @@ class sessionlib_test extends \advanced_testcase {
 
         cron_setup_user();
         $this->assertSame($admin->id, $USER->id);
-        $this->assertSame($PAGE->context, \context_course::instance($SITE->id));
+        $this->assertSame($PAGE->context, context_course::instance($SITE->id));
         $this->assertSame($adminsession, $SESSION);
         $this->assertSame($adminuser, $USER);
         $this->assertSame($GLOBALS['SESSION'], $_SESSION['SESSION']);
@@ -269,7 +279,7 @@ class sessionlib_test extends \advanced_testcase {
         try {
             confirm_sesskey();
             $this->fail('Exception expected when sesskey not present');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertSame('missingparam', $e->errorcode);
         }
 
@@ -291,7 +301,7 @@ class sessionlib_test extends \advanced_testcase {
         try {
             require_sesskey();
             $this->fail('Exception expected when sesskey not present');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertSame('missingparam', $e->errorcode);
         }
 
@@ -302,7 +312,7 @@ class sessionlib_test extends \advanced_testcase {
         try {
             require_sesskey();
             $this->fail('Exception expected when sesskey not incorrect');
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $this->assertSame('invalidsesskey', $e->errorcode);
         }
     }

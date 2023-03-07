@@ -65,7 +65,6 @@ $GLOBALS['_HTML_QuickForm_registered_rules'] = array(
     'numeric'       => array('html_quickform_rule_regex',    'HTML/QuickForm/Rule/Regex.php'),
     'nopunctuation' => array('html_quickform_rule_regex',    'HTML/QuickForm/Rule/Regex.php'),
     'nonzero'       => array('html_quickform_rule_regex',    'HTML/QuickForm/Rule/Regex.php'),
-    'positiveint'   => array('html_quickform_rule_regex',    'HTML/QuickForm/Rule/Regex.php'),
     'callback'      => array('html_quickform_rule_callback', 'HTML/QuickForm/Rule/Callback.php'),
     'compare'       => array('html_quickform_rule_compare',  'HTML/QuickForm/Rule/Compare.php')
 );
@@ -267,8 +266,21 @@ class HTML_QuickForm extends HTML_Common {
         $attributes = array('action'=>$action, 'method'=>$method, 'name'=>$formName, 'id'=>$formName) + $target;
         $this->updateAttributes($attributes);
         if (!$trackSubmit || isset($_REQUEST['_qf__' . $formName])) {
-            $this->_submitValues = 'get' == $method? $_GET: $_POST;
-            $this->_submitFiles  = $_FILES;
+            if (1 == get_magic_quotes_gpc()) {
+                $this->_submitValues = ('get' == $method? $_GET: $_POST); // we already eliminated magic quotes in moodle setup.php
+                foreach ($_FILES as $keyFirst => $valFirst) {
+                    foreach ($valFirst as $keySecond => $valSecond) {
+                        if ('name' == $keySecond) {
+                            $this->_submitFiles[$keyFirst][$keySecond] = $valSecond; // we already eliminated magic quotes in moodle setup.php
+                        } else {
+                            $this->_submitFiles[$keyFirst][$keySecond] = $valSecond;
+                        }
+                    }
+                }
+            } else {
+                $this->_submitValues = 'get' == $method? $_GET: $_POST;
+                $this->_submitFiles  = $_FILES;
+            }
             $this->_flagSubmitted = count($this->_submitValues) > 0 || count($this->_submitFiles) > 0;
         }
         if ($trackSubmit) {
@@ -733,7 +745,7 @@ class HTML_QuickForm extends HTML_Common {
     {
         static $anonGroups = 1;
 
-        if (0 == strlen($name ?? '')) {
+        if (0 == strlen($name)) {
             $name       = 'qf_group_' . $anonGroups++;
             $appendName = false;
         }
@@ -813,7 +825,6 @@ class HTML_QuickForm extends HTML_Common {
     function getSubmitValue($elementName)
     {
         $value = null;
-        $elementName = $elementName ?? '';
         if (isset($this->_submitValues[$elementName]) || isset($this->_submitFiles[$elementName])) {
             $value = isset($this->_submitValues[$elementName])? $this->_submitValues[$elementName]: array();
             if (is_array($value) && isset($this->_submitFiles[$elementName])) {

@@ -14,13 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core;
-
-use Redis;
-use RedisException;
-
 /**
- * Unit tests for classes/session/redis.php.
+ * Redis session tests.
  *
  * NOTE: in order to execute this test you need to set up
  *       Redis server and add configuration a constant
@@ -31,22 +26,28 @@ use RedisException;
  * @package   core
  * @author    Russell Smith <mr-russ@smith2001.net>
  * @copyright 2016 Russell Smith
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+/**
+ * Unit tests for classes/session/redis.php.
+ *
+ * @package   core
+ * @author    Russell Smith <mr-russ@smith2001.net>
+ * @copyright 2016 Russell Smith
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @runClassInSeparateProcess
  */
-class session_redis_test extends \advanced_testcase {
+class core_session_redis_testcase extends advanced_testcase {
 
     /** @var $keyprefix This key prefix used when testing Redis */
     protected $keyprefix = null;
     /** @var $redis The current testing redis connection */
     protected $redis = null;
-    /** @var int $acquiretimeout how long we wait for session lock in seconds when testing Redis */
-    protected $acquiretimeout = 1;
-    /** @var int $lockexpire how long to wait in seconds before expiring the lock when testing Redis */
-    protected $lockexpire = 70;
 
-
-    public function setUp(): void {
+    public function setUp() {
         global $CFG;
 
         if (!extension_loaded('redis')) {
@@ -71,14 +72,14 @@ class session_redis_test extends \advanced_testcase {
 
         // Set a very short lock timeout to ensure tests run quickly.  We are running single threaded,
         // so unless we lock and expect it to be there, we will always see a lock.
-        $CFG->session_redis_acquire_lock_timeout = $this->acquiretimeout;
-        $CFG->session_redis_lock_expire = $this->lockexpire;
+        $CFG->session_redis_acquire_lock_timeout = 1;
+        $CFG->session_redis_lock_expire = 70;
 
         $this->redis = new Redis();
         $this->redis->connect(TEST_SESSION_REDIS_HOST);
     }
 
-    public function tearDown(): void {
+    public function tearDown() {
         if (!extension_loaded('redis') || !defined('TEST_SESSION_REDIS_HOST')) {
             return;
         }
@@ -115,30 +116,6 @@ class session_redis_test extends \advanced_testcase {
         $this->assertSessionNoLocks();
     }
 
-    public function test_compression_read_and_write_works() {
-        global $CFG;
-
-        $CFG->session_redis_compressor = \core\session\redis::COMPRESSION_GZIP;
-
-        $sess = new \core\session\redis();
-        $sess->init();
-        $this->assertTrue($sess->handler_write('sess1', 'DATA'));
-        $this->assertSame('DATA', $sess->handler_read('sess1'));
-        $this->assertTrue($sess->handler_close());
-
-        if (extension_loaded('zstd')) {
-            $CFG->session_redis_compressor = \core\session\redis::COMPRESSION_ZSTD;
-
-            $sess = new \core\session\redis();
-            $sess->init();
-            $this->assertTrue($sess->handler_write('sess2', 'DATA'));
-            $this->assertSame('DATA', $sess->handler_read('sess2'));
-            $this->assertTrue($sess->handler_close());
-        }
-
-        $CFG->session_redis_compressor = \core\session\redis::COMPRESSION_NONE;
-    }
-
     public function test_session_blocks_with_existing_session() {
         $sess = new \core\session\redis();
         $sess->init();
@@ -164,10 +141,8 @@ class session_redis_test extends \advanced_testcase {
             $sessblocked->handler_read('sess1');
             $this->fail('Session lock must fail to be obtained.');
         } catch (\core\session\exception $e) {
-            $this->assertStringContainsString("Unable to obtain lock for session id sess1", $e->getMessage());
-            $this->assertStringContainsString('within 1 sec.', $e->getMessage());
-            $this->assertStringContainsString('session lock timeout (1 min 10 secs) ', $e->getMessage());
-            $this->assertStringContainsString('Cannot obtain session lock for sid: sess1', file_get_contents($errorlog));
+            $this->assertContains("Unable to obtain session lock", $e->getMessage());
+            $this->assertContains('Cannot obtain session lock for sid: sess1', file_get_contents($errorlog));
         }
 
         $this->assertTrue($sessblocked->handler_close());
@@ -327,7 +302,7 @@ class session_redis_test extends \advanced_testcase {
 
         $expected = 'Failed to connect (try 5 out of 5) to redis at ' . TEST_SESSION_REDIS_HOST . ':111111';
         $this->assertDebuggingCalledCount(5);
-        $this->assertStringContainsString($expected, $actual);
+        $this->assertContains($expected, $actual);
     }
 
     /**

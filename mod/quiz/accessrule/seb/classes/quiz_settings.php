@@ -377,7 +377,7 @@ class quiz_settings extends persistent {
      */
     protected function before_validate() {
         // Template can't be null.
-        if (is_null($this->raw_get('templateid'))) {
+        if (is_null($this->get('templateid'))) {
             $this->set('templateid', 0);
         }
     }
@@ -460,7 +460,6 @@ class quiz_settings extends persistent {
 
         // One of the requirements for USE_SEB_CONFIG_MANUALLY is setting examSessionClearCookiesOnStart to false.
         $this->plist->set_or_update_value('examSessionClearCookiesOnStart', new CFBoolean(false));
-        $this->plist->set_or_update_value('allowPreferencesWindow', new CFBoolean(false));
         $this->config = $this->plist->to_xml();
     }
 
@@ -516,11 +515,6 @@ class quiz_settings extends persistent {
         $quizurl = new moodle_url($CFG->wwwroot . "/mod/quiz/view.php", ['id' => $this->get('cmid')]);
         $this->plist->set_or_update_value('startURL', new CFString($quizurl->out(true)));
         $this->plist->set_or_update_value('sendBrowserExamKey', new CFBoolean(true));
-
-        // Use the modern WebView and JS API if the SEB version supports it.
-        // Documentation: https://safeexambrowser.org/developer/seb-config-key.html .
-        // "Set the key browserWindowWebView to the policy "Prefer Modern" (value 3)".
-        $this->plist->set_or_update_value('browserWindowWebView', new CFNumber(3));
     }
 
     /**
@@ -662,7 +656,7 @@ class quiz_settings extends persistent {
      * @return array of string, the separate keys.
      */
     private function split_keys($keys) : array {
-        $keys = preg_split('~[ \t\n\r,;]+~', $keys ?? '', -1, PREG_SPLIT_NO_EMPTY);
+        $keys = preg_split('~[ \t\n\r,;]+~', $keys, -1, PREG_SPLIT_NO_EMPTY);
         foreach ($keys as $i => $key) {
             $keys[$i] = strtolower($key);
         }

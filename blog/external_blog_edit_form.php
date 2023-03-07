@@ -64,7 +64,7 @@ class blog_edit_external_form extends moodleform {
         $mform->setDefault('id', 0);
 
         $mform->addElement('hidden', 'returnurl');
-        $mform->setType('returnurl', PARAM_LOCALURL);
+        $mform->setType('returnurl', PARAM_URL);
         $mform->setDefault('returnurl', 0);
     }
 

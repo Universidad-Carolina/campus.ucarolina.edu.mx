@@ -14,13 +14,15 @@ Feature: In a lesson activity a student should
       | user | course | role |
       | teacher1 | C1 | editingteacher |
       | student1 | C1 | student |
-    And the following "activity" exists:
-      | activity    | lesson                      |
-      | name        | Test lesson name            |
-      | course      | C1                          |
-      | idnumber    | 0001                        |
-      | retake      | 1                           |
-    And I am on the "Test lesson name" "lesson activity" page logged in as teacher1
+    And I log in as "teacher1"
+    And I am on "Course 1" course homepage with editing mode on
+    And I add a "Lesson" to section "1"
+    And I set the following fields to these values:
+      | Name | Test lesson name |
+      | Description | Test lesson description |
+      | Re-takes allowed | Yes |
+    And I press "Save and return to course"
+    And I follow "Test lesson name"
 
   Scenario: resume a lesson with both content then question pages
     Given I follow "Add a content page"
@@ -74,7 +76,10 @@ Feature: In a lesson activity a student should
       | id_answer_editor_1 | Next page |
       | id_jumpto_1 | Next page |
     And I press "Save page"
-    When I am on the "Test lesson name" "lesson activity" page logged in as student1
+    And I log out
+    When I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I follow "Test lesson name"
     And I should see "First page contents"
     And I press "Next page"
     # Add 1 sec delay so lesson knows a valid attempt has been made in past.
@@ -82,7 +87,6 @@ Feature: In a lesson activity a student should
     And I should see "Second page contents"
     And I press "Next page"
     And I should see "Third page contents"
-    And I am on "Course 1" course homepage
     And I follow "Test lesson name"
     And I should see "You have seen more than one page of this lesson already."
     And I should see "Do you want to start at the last page you saw?"
@@ -92,7 +96,6 @@ Feature: In a lesson activity a student should
     And I wait "1" seconds
     And I press "Next page"
     And I should see "Paper is made from trees."
-    And I am on "Course 1" course homepage
     And I follow "Test lesson name"
     And I should see "You have seen more than one page of this lesson already."
     And I should see "Do you want to start at the last page you saw?"
@@ -103,7 +106,6 @@ Feature: In a lesson activity a student should
     And I press "Submit"
     And I press "Continue"
     And I should see "Kermit is a frog"
-    And I am on "Course 1" course homepage
     And I follow "Test lesson name"
     And I should see "You have seen more than one page of this lesson already."
     And I should see "Do you want to start at the last page you saw?"
@@ -150,7 +152,10 @@ Feature: In a lesson activity a student should
       | id_answer_editor_1 | Next page |
       | id_jumpto_1 | Next page |
     And I press "Save page"
-    When I am on the "Test lesson name" "lesson activity" page logged in as student1
+    And I log out
+    When I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I follow "Test lesson name"
     And I should see "First page contents"
     And I press "Next page"
     And I should see "Second page contents"
@@ -158,7 +163,6 @@ Feature: In a lesson activity a student should
     And I wait "1" seconds
     And I press "Next page"
     And I should see "Third page contents"
-    And I am on "Course 1" course homepage
     And I follow "Test lesson name"
     Then I should see "You have seen more than one page of this lesson already."
     And I should see "Do you want to start at the last page you saw?"
@@ -169,8 +173,12 @@ Feature: In a lesson activity a student should
     # Add 1 sec delay so lesson knows a valid attempt has been made in past.
     And I wait "1" seconds
     And I press "End of lesson"
-    And I am on the "Test lesson name" "lesson activity" page logged in as student1
+    And I log out
+    And I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I follow "Test lesson name"
     And I should see "First page contents"
+    And I log out
 
   Scenario: resume a lesson with both question then content pages
     Given I follow "Add a question page"
@@ -252,7 +260,10 @@ Feature: In a lesson activity a student should
       | id_answer_editor_0 | Next page |
       | id_jumpto_0 | Next page |
     And I press "Save page"
-    When I am on the "Test lesson name" "lesson activity" page logged in as student1
+    And I log out
+    When I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I follow "Test lesson name"
     And I should see "Cat is an amphibian"
     And I set the following fields to these values:
       | False | 1 |
@@ -273,7 +284,6 @@ Feature: In a lesson activity a student should
     And I press "Submit"
     And I press "Continue"
     And I should see "2+2=4"
-    And I am on "Course 1" course homepage
     And I follow "Test lesson name"
     And I should see "You have seen more than one page of this lesson already."
     Then I should see "Do you want to start at the last page you saw?"
@@ -286,7 +296,6 @@ Feature: In a lesson activity a student should
     And I press "Submit"
     And I press "Continue"
     And I should see "Second content page"
-    And I am on "Course 1" course homepage
     And I follow "Test lesson name"
     And I should see "You have seen more than one page of this lesson already."
     And I should see "Do you want to start at the last page you saw?"
@@ -366,7 +375,10 @@ Feature: In a lesson activity a student should
       | id_response_editor_1 | Wrong |
       | id_jumpto_1 | This page |
     And I press "Save page"
-    When I am on the "Test lesson name" "lesson activity" page logged in as student1
+    And I log out
+    When I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I follow "Test lesson name"
     And I should see "Cat is an amphibian"
     And I set the following fields to these values:
       | False | 1 |
@@ -385,7 +397,6 @@ Feature: In a lesson activity a student should
     And I press "Submit"
     And I press "Continue"
     And I should see "2+2=4"
-    And I am on "Course 1" course homepage
     And I follow "Test lesson name"
     Then I should see "You have seen more than one page of this lesson already."
     And I should see "Do you want to start at the last page you saw?"

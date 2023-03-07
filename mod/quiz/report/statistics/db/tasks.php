@@ -28,10 +28,10 @@ defined('MOODLE_INTERNAL') || die();
 
 $tasks = [
     [
-        'classname' => 'quiz_statistics\task\recalculate',
+        'classname' => 'quiz_statistics\task\quiz_statistics_cleanup',
         'blocking' => 0,
         'minute' => 'R',
-        'hour' => '*/4',
+        'hour' => '*/5',
         'day' => '*',
         'dayofweek' => '*',
         'month' => '*'

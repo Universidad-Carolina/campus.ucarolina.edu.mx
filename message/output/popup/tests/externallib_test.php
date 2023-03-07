@@ -14,10 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace message_popup;
-
-use message_popup_external;
-use message_popup_test_helper;
+/**
+ * External message popup functions unit tests
+ *
+ * @package    message_popup
+ * @copyright  2016 Ryan Wyllie <ryan@moodle.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -30,11 +33,10 @@ require_once($CFG->dirroot . '/message/output/popup/tests/base.php');
 /**
  * Class for external message popup functions unit tests.
  *
- * @package    message_popup
  * @copyright  2016 Ryan Wyllie <ryan@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class externallib_test extends \advanced_testcase {
+class message_popup_externallib_testcase extends advanced_testcase {
     use message_popup_test_helper;
 
     /**
@@ -42,7 +44,7 @@ class externallib_test extends \advanced_testcase {
      *
      * This is executed before running any test in this file.
      */
-    public function setUp(): void {
+    public function setUp() {
         $this->preventResetByRollback(); // Messaging is not compatible with transactions.
         $this->messagesink = $this->redirectMessages();
         $this->resetAfterTest();

@@ -100,15 +100,6 @@ abstract class restore_activity_task extends restore_task {
         return $this->moduleid;
     }
 
-    /**
-     * Returns the old course module id (cmid of activity which will be restored)
-     *
-     * @return int
-     */
-    public function get_old_moduleid() {
-        return $this->oldmoduleid;
-    }
-
     public function get_old_moduleversion() {
         return $this->oldmoduleversion;
     }
@@ -247,6 +238,16 @@ abstract class restore_activity_task extends restore_task {
     }
 
     /**
+     * Given a commment area, return the itemname that contains the itemid mappings
+     *
+     * By default both are the same (commentarea = itemname), so return it. If some
+     * module uses a different approach, this method can be overriden in its taks
+     */
+    public function get_comment_mapping_itemname($commentarea) {
+        return $commentarea;
+    }
+
+    /**
      * Define (add) particular steps that each activity can have
      */
     abstract protected function define_my_steps();
@@ -295,8 +296,8 @@ abstract class restore_activity_task extends restore_task {
         // - section_included setting (if exists)
         $settingname = $settingprefix . 'included';
         $activity_included = new restore_activity_generic_setting($settingname, base_setting::IS_BOOLEAN, true);
-        $activity_included->get_ui()->set_icon(new image_icon('monologo', get_string('pluginname', $this->modulename),
-            $this->modulename, array('class' => 'iconlarge icon-post ml-1')));
+        $activity_included->get_ui()->set_icon(new image_icon('icon', get_string('pluginname', $this->modulename),
+            $this->modulename, array('class' => 'iconlarge icon-post')));
         $this->add_setting($activity_included);
         // Look for "activities" root setting
         $activities = $this->plan->get_setting('activities');

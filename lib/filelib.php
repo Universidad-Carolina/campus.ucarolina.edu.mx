@@ -40,16 +40,6 @@ define('IGNORE_FILE_MERGE', -1);
  */
 define('FILE_AREA_MAX_BYTES_UNLIMITED', -1);
 
-/**
- * Capacity of the draft area bucket when using the leaking bucket technique to limit the draft upload rate.
- */
-define('DRAFT_AREA_BUCKET_CAPACITY', 50);
-
-/**
- * Leaking rate of the draft area bucket when using the leaking bucket technique to limit the draft upload rate.
- */
-define('DRAFT_AREA_BUCKET_LEAK', 0.2);
-
 require_once("$CFG->libdir/filestorage/file_exceptions.php");
 require_once("$CFG->libdir/filestorage/file_storage.php");
 require_once("$CFG->libdir/filestorage/zip_packer.php");
@@ -368,7 +358,7 @@ function file_get_unused_draft_itemid() {
 
     if (isguestuser() or !isloggedin()) {
         // guests and not-logged-in users can not be allowed to upload anything!!!!!!
-        throw new \moodle_exception('noguest');
+        print_error('noguest');
     }
 
     $contextid = context_user::instance($USER->id)->id;
@@ -400,7 +390,7 @@ function file_get_unused_draft_itemid() {
  * @return string|null returns string if $text was passed in, the rewritten $text is returned. Otherwise NULL.
  */
 function file_prepare_draft_area(&$draftitemid, $contextid, $component, $filearea, $itemid, array $options=null, $text=null) {
-    global $CFG, $USER;
+    global $CFG, $USER, $CFG;
 
     $options = (array)$options;
     if (!isset($options['subdirs'])) {
@@ -518,9 +508,9 @@ function file_rewrite_pluginfile_urls($text, $file, $contextid, $component, $fil
     }
 
     if (!empty($options['reverse'])) {
-        return str_replace($baseurl, '@@PLUGINFILE@@/', $text ?? '');
+        return str_replace($baseurl, '@@PLUGINFILE@@/', $text);
     } else {
-        return str_replace('@@PLUGINFILE@@/', $baseurl, $text ?? '');
+        return str_replace('@@PLUGINFILE@@/', $baseurl, $text);
     }
 }
 
@@ -614,55 +604,6 @@ function file_is_draft_area_limit_reached($draftitemid, $areamaxbytes, $newfiles
         }
     }
     return false;
-}
-
-/**
- * Returns whether a user has reached their draft area upload rate.
- *
- * @param int $userid The user id
- * @return bool
- */
-function file_is_draft_areas_limit_reached(int $userid): bool {
-    global $CFG;
-
-    $capacity = $CFG->draft_area_bucket_capacity ?? DRAFT_AREA_BUCKET_CAPACITY;
-    $leak = $CFG->draft_area_bucket_leak ?? DRAFT_AREA_BUCKET_LEAK;
-
-    $since = time() - floor($capacity / $leak); // The items that were in the bucket before this time are already leaked by now.
-                                                // We are going to be a bit generous to the user when using the leaky bucket
-                                                // algorithm below. We are going to assume that the bucket is empty at $since.
-                                                // We have to do an assumption here unless we really want to get ALL user's draft
-                                                // items without any limit and put all of them in the leaking bucket.
-                                                // I decided to favour performance over accuracy here.
-
-    $fs = get_file_storage();
-    $items = $fs->get_user_draft_items($userid, $since);
-    $items = array_reverse($items); // So that the items are sorted based on time in the ascending direction.
-
-    // We only need to store the time that each element in the bucket is going to leak. So $bucket is array of leaking times.
-    $bucket = [];
-    foreach ($items as $item) {
-        $now = $item->timemodified;
-        // First let's see if items can be dropped from the bucket as a result of leakage.
-        while (!empty($bucket) && ($now >= $bucket[0])) {
-            array_shift($bucket);
-        }
-
-        // Calculate the time that the new item we put into the bucket will be leaked from it, and store it into the bucket.
-        if ($bucket) {
-            $bucket[] = max($bucket[count($bucket) - 1], $now) + (1 / $leak);
-        } else {
-            $bucket[] = $now + (1 / $leak);
-        }
-    }
-
-    // Recalculate the bucket's content based on the leakage until now.
-    $now = time();
-    while (!empty($bucket) && ($now >= $bucket[0])) {
-        array_shift($bucket);
-    }
-
-    return count($bucket) >= $capacity;
 }
 
 /**
@@ -785,7 +726,7 @@ function file_get_drafarea_files($draftitemid, $filepath = '/') {
             }
             // find the file this draft file was created from and count all references in local
             // system pointing to that file
-            $source = @unserialize($file->get_source() ?? '');
+            $source = @unserialize($file->get_source());
             if (isset($source->original)) {
                 $item->refcount = $fs->search_references_count($source->original);
             }
@@ -905,7 +846,7 @@ function file_get_submitted_draft_itemid($elname) {
  * @return stored_file
  */
 function file_restore_source_field_from_draft_file($storedfile) {
-    $source = @unserialize($storedfile->get_source() ?? '');
+    $source = @unserialize($storedfile->get_source());
     if (!empty($source)) {
         if (is_object($source)) {
             $restoredsource = $source->source;
@@ -1107,12 +1048,6 @@ function file_save_draft_area_files($draftitemid, $contextid, $component, $filea
         return $text;
     }
 
-    if ($itemid === false) {
-        // Catch a potentially dangerous coding error.
-        throw new coding_exception('file_save_draft_area_files was called with $itemid false. ' .
-                "This suggests a bug, because it would wipe all ($contextid, $component, $filearea) files.");
-    }
-
     $usercontext = context_user::instance($USER->id);
     $fs = get_file_storage();
 
@@ -1199,7 +1134,7 @@ function file_save_draft_area_files($draftitemid, $contextid, $component, $filea
             // Let's check if we can update this file or we need to delete and create.
             if ($newfile->is_directory()) {
                 // Directories are always ok to just update.
-            } else if (($source = @unserialize($newfile->get_source() ?? '')) && isset($source->original)) {
+            } else if (($source = @unserialize($newfile->get_source())) && isset($source->original)) {
                 // File has the 'original' - we need to update the file (it may even have not been changed at all).
                 $original = file_storage::unpack_reference($source->original);
                 if ($original['filename'] !== $oldfile->get_filename() || $original['filepath'] !== $oldfile->get_filepath()) {
@@ -1235,7 +1170,7 @@ function file_save_draft_area_files($draftitemid, $contextid, $component, $filea
             // Field files.source for draftarea files contains serialised object with source and original information.
             // We only store the source part of it for non-draft file area.
             $newsource = $newfile->get_source();
-            if ($source = @unserialize($newfile->get_source() ?? '')) {
+            if ($source = @unserialize($newfile->get_source())) {
                 $newsource = $source->source;
             }
             if ($oldfile->get_source() !== $newsource) {
@@ -1269,7 +1204,7 @@ function file_save_draft_area_files($draftitemid, $contextid, $component, $filea
         // the size and subdirectory tests are extra safety only, the UI should prevent it
         foreach ($newhashes as $file) {
             $file_record = array('contextid'=>$contextid, 'component'=>$component, 'filearea'=>$filearea, 'itemid'=>$itemid, 'timemodified'=>time());
-            if ($source = @unserialize($file->get_source() ?? '')) {
+            if ($source = @unserialize($file->get_source())) {
                 // Field files.source for draftarea files contains serialised object with source and original information.
                 // We only store the source part of it for non-draft file area.
                 $file_record['source'] = $source->source;
@@ -1478,7 +1413,7 @@ function format_postdata_for_curlcall($postdata) {
                 $currentdata = urlencode($k);
                 format_array_postdata_for_curlcall($v, $currentdata, $data);
             }  else {
-                $data[] = urlencode($k).'='.urlencode($v ?? '');
+                $data[] = urlencode($k).'='.urlencode($v);
             }
         }
         $convertedpostdata = implode('&', $data);
@@ -1704,7 +1639,6 @@ function download_file_content($url, $headers=null, $postdata=null, $fullrespons
  *     commonly used in moodle the following groups:
  *       - web_image - image that can be included as <img> in HTML
  *       - image - image that we can parse using GD to find it's dimensions, also used for portfolio format
- *       - optimised_image - image that will be processed and optimised
  *       - video - file that can be imported as video in text editor
  *       - audio - file that can be imported as audio in text editor
  *       - archive - we can extract files from this archive
@@ -1771,7 +1705,7 @@ function mimeinfo($element, $filename) {
     $mimeinfo = & get_mimetypes_array();
     static $iconpostfixes = array(256=>'-256', 128=>'-128', 96=>'-96', 80=>'-80', 72=>'-72', 64=>'-64', 48=>'-48', 32=>'-32', 24=>'-24', 16=>'');
 
-    $filetype = strtolower(pathinfo($filename ?? '', PATHINFO_EXTENSION));
+    $filetype = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
     if (empty($filetype)) {
         $filetype = 'xxx'; // file without extension
     }
@@ -2028,8 +1962,8 @@ function get_mimetype_description($obj, $capitalise=false) {
     }
 
     // MIME types may include + symbol but this is not permitted in string ids.
-    $safemimetype = str_replace('+', '_', $mimetype ?? '');
-    $safemimetypestr = str_replace('+', '_', $mimetypestr ?? '');
+    $safemimetype = str_replace('+', '_', $mimetype);
+    $safemimetypestr = str_replace('+', '_', $mimetypestr);
     $customdescription = mimeinfo('customdescription', $filename);
     if ($customdescription) {
         // Call format_string on the custom description so that multilang
@@ -2137,8 +2071,7 @@ function send_file_not_found() {
     }
 
     send_header_404();
-    throw new \moodle_exception('filenotfound', 'error',
-        $CFG->wwwroot.'/course/view.php?id='.$COURSE->id); // This is not displayed on IIS?
+    print_error('filenotfound', 'error', $CFG->wwwroot.'/course/view.php?id='.$COURSE->id); //this is not displayed on IIS??
 }
 /**
  * Helper function to send correct 404 for server.
@@ -2300,25 +2233,21 @@ function readfile_accel($file, $mimetype, $accelerate) {
         }
     }
 
+    if ($filesize > 10000000) {
+        // for large files try to flush and close all buffers to conserve memory
+        while(@ob_get_level()) {
+            if (!@ob_end_flush()) {
+                break;
+            }
+        }
+    }
+
+    // Send this header after we have flushed the buffers so that if we fail
+    // later can remove this because it wasn't sent.
     header('Content-Length: ' . $filesize);
 
     if (!empty($_SERVER['REQUEST_METHOD']) and $_SERVER['REQUEST_METHOD'] === 'HEAD') {
         exit;
-    }
-
-    while (ob_get_level()) {
-        $handlerstack = ob_list_handlers();
-        $activehandler = array_pop($handlerstack);
-        if ($activehandler === 'default output handler') {
-            // We do not expect any content in the buffer when we are serving files.
-            $buffercontents = ob_get_clean();
-            if ($buffercontents !== '') {
-                error_log('Non-empty default output handler buffer detected while serving the file ' . $file);
-            }
-        } else {
-            // Some handlers such as zlib output compression may have file signature buffered - flush it.
-            ob_end_flush();
-        }
     }
 
     // send the whole file content
@@ -2373,7 +2302,7 @@ function send_temp_file($path, $filename, $pathisstring=false) {
     if (!$pathisstring) {
         if (!file_exists($path)) {
             send_header_404();
-            throw new \moodle_exception('filenotfound', 'error', $CFG->wwwroot.'/');
+            print_error('filenotfound', 'error', $CFG->wwwroot.'/');
         }
         // executed after normal finish or abort
         core_shutdown_manager::register_function('send_temp_file_finished', array($path));
@@ -2506,9 +2435,6 @@ function file_safe_save_content($content, $destination) {
  * @param array $options An array of options, currently accepts:
  *                       - (string) cacheability: public, or private.
  *                       - (string|null) immutable
- *                       - (bool) dontforcesvgdownload: true if force download should be disabled on SVGs.
- *                                Note: This overrides a security feature, so should only be applied to "trusted" content
- *                                (eg module content that is created using an XSS risk flagged capability, such as SCORM).
  * @return null script execution stopped unless $dontdie is true
  */
 function send_file($path, $filename, $lifetime = null , $filter=0, $pathisstring=false, $forcedownload=false, $mimetype='',
@@ -2537,12 +2463,6 @@ function send_file($path, $filename, $lifetime = null , $filter=0, $pathisstring
     // if user is using IE, urlencode the filename so that multibyte file name will show up correctly on popup
     if (core_useragent::is_ie() || core_useragent::is_edge()) {
         $filename = rawurlencode($filename);
-    }
-
-    // Make sure we force download of SVG files, unless the module explicitly allows them (eg within SCORM content).
-    // This is for security reasons (https://digi.ninja/blog/svg_xss.php).
-    if (file_is_svg_image_from_mimetype($mimetype) && empty($options['dontforcesvgdownload'])) {
-        $forcedownload = true;
     }
 
     if ($forcedownload) {
@@ -2605,7 +2525,7 @@ function send_file($path, $filename, $lifetime = null , $filter=0, $pathisstring
 
     } else {
         // Try to put the file through filters
-        if ($mimetype == 'text/html' || $mimetype == 'application/xhtml+xml' || file_is_svg_image_from_mimetype($mimetype)) {
+        if ($mimetype == 'text/html' || $mimetype == 'application/xhtml+xml') {
             $options = new stdClass();
             $options->noclean = true;
             $options->nocache = true; // temporary workaround for MDL-5136
@@ -2679,8 +2599,6 @@ function send_file($path, $filename, $lifetime = null , $filter=0, $pathisstring
 function send_stored_file($stored_file, $lifetime=null, $filter=0, $forcedownload=false, array $options=array()) {
     global $CFG, $COURSE;
 
-    static $recursion = 0;
-
     if (empty($options['filename'])) {
         $filename = null;
     } else {
@@ -2724,13 +2642,6 @@ function send_stored_file($stored_file, $lifetime=null, $filter=0, $forcedownloa
 
     // handle external resource
     if ($stored_file && $stored_file->is_external_file() && !isset($options['sendcachedexternalfile'])) {
-
-        // Have we been here before?
-        $recursion++;
-        if ($recursion > 10) {
-            throw new coding_exception('Recursive file serving detected');
-        }
-
         $stored_file->send_file($lifetime, $filter, $forcedownload, $options);
         die;
     }
@@ -2919,7 +2830,7 @@ function file_overwrite_existing_draftfile(stored_file $newfile, stored_file $ex
 
     $fs = get_file_storage();
     // Remember original file source field.
-    $source = @unserialize($existingfile->get_source() ?? '');
+    $source = @unserialize($existingfile->get_source());
     // Remember the original sortorder.
     $sortorder = $existingfile->get_sortorder();
     if ($newfile->is_external_file()) {
@@ -2943,7 +2854,7 @@ function file_overwrite_existing_draftfile(stored_file $newfile, stored_file $ex
     $newfile = $fs->create_file_from_storedfile($newfilerecord, $newfile);
     // Preserve original file location (stored in source field) for handling references.
     if (isset($source->original)) {
-        if (!($newfilesource = @unserialize($newfile->get_source() ?? ''))) {
+        if (!($newfilesource = @unserialize($newfile->get_source()))) {
             $newfilesource = new stdClass();
         }
         $newfilesource->original = $source->original;
@@ -3044,48 +2955,6 @@ function file_merge_draft_area_into_draft_area($getfromdraftid, $mergeintodrafti
 }
 
 /**
- * Attempt to determine whether the specified mime-type is an SVG image or not.
- *
- * @param string $mimetype Mime-type
- * @return bool True if it is an SVG file
- */
-function file_is_svg_image_from_mimetype(string $mimetype): bool {
-    return preg_match('|^image/svg|', $mimetype);
-}
-
-/**
- * Returns the moodle proxy configuration as a formatted url
- *
- * @return string the string to use for proxy settings.
- */
-function get_moodle_proxy_url() {
-    global $CFG;
-    $proxy = '';
-    if (empty($CFG->proxytype)) {
-        return $proxy;
-    }
-    if (empty($CFG->proxyhost)) {
-        return $proxy;
-    }
-    if ($CFG->proxytype === 'SOCKS5') {
-        // If it is a SOCKS proxy, append the protocol info.
-        $protocol = 'socks5://';
-    } else {
-        $protocol = '';
-    }
-    $proxy = $CFG->proxyhost;
-    if (!empty($CFG->proxyport)) {
-        $proxy .= ':'. $CFG->proxyport;
-    }
-    if (!empty($CFG->proxyuser) && !empty($CFG->proxypassword)) {
-        $proxy = $protocol . $CFG->proxyuser . ':' . $CFG->proxypassword . '@' . $proxy;
-    }
-    return $proxy;
-}
-
-
-
-/**
  * RESTful cURL class
  *
  * This is a wrapper class for curl, it is quite easy to use:
@@ -3130,7 +2999,7 @@ class curl {
     public  $error;
     /** @var int error code */
     public  $errno;
-    /** @var bool Perform redirects at PHP level instead of relying on native cURL functionality. Always true now. */
+    /** @var bool use workaround for open_basedir restrictions, to be changed from unit tests only! */
     public $emulateredirects = null;
 
     /** @var array cURL options */
@@ -3148,7 +3017,7 @@ class curl {
     private $cookie   = false;
     /** @var bool tracks multiple headers in response - redirect detection */
     private $responsefinished = false;
-    /** @var security helper class, responsible for checking host/ports against allowed/blocked entries.*/
+    /** @var security helper class, responsible for checking host/ports against blacklist/whitelist entries.*/
     private $securityhelper;
     /** @var bool ignoresecurity a flag which can be supplied to the constructor, allowing security to be bypassed. */
     private $ignoresecurity;
@@ -3215,14 +3084,7 @@ class curl {
                     $this->proxy_type = CURLPROXY_SOCKS5;
                 } else {
                     $this->proxy_type = CURLPROXY_HTTP;
-                    $this->setopt([
-                        'httpproxytunnel' => false,
-                    ]);
-                    if (defined('CURLOPT_SUPPRESS_CONNECT_HEADERS')) {
-                        $this->setopt([
-                            'suppress_connect_headers' => true,
-                        ]);
-                    }
+                    $this->setopt(array('httpproxytunnel'=>false));
                 }
                 $this->setopt(array('proxytype'=>$this->proxy_type));
             }
@@ -3234,13 +3096,9 @@ class curl {
             $this->proxy = false;
         }
 
-        // All redirects are performed at PHP level now and each one is checked against blocked URLs rules. We do not
-        // want to let cURL naively follow the redirect chain and visit every URL for security reasons. Even when the
-        // caller explicitly wants to ignore the security checks, we would need to fall back to the original
-        // implementation and use emulated redirects if open_basedir is in effect to avoid the PHP warning
-        // "CURLOPT_FOLLOWLOCATION cannot be activated when in safe_mode or an open_basedir". So it is better to simply
-        // ignore this property and always handle redirects at this PHP wrapper level and not inside the native cURL.
-        $this->emulateredirects = true;
+        if (!isset($this->emulateredirects)) {
+            $this->emulateredirects = ini_get('open_basedir');
+        }
 
         // Curl security setup. Allow injection of a security helper, but if not found, default to the core helper.
         if (isset($settings['securityhelper']) && $settings['securityhelper'] instanceof \core\files\curl_security_helper_base) {
@@ -3339,11 +3197,7 @@ class curl {
                     throw new coding_exception('Curl options should be defined using strings, not constant values.');
                 }
                 if (stripos($name, 'CURLOPT_') === false) {
-                    // Only prefix with CURLOPT_ if the option doesn't contain CURLINFO_,
-                    // which is a valid prefix for at least one option CURLINFO_HEADER_OUT.
-                    if (stripos($name, 'CURLINFO_') === false) {
-                        $name = strtoupper('CURLOPT_'.$name);
-                    }
+                    $name = strtoupper('CURLOPT_'.$name);
                 } else {
                     $name = strtoupper($name);
                 }
@@ -3553,8 +3407,8 @@ class curl {
 
         // Set options.
         foreach($this->options as $name => $val) {
-            if ($name === 'CURLOPT_FOLLOWLOCATION') {
-                // All the redirects are emulated at PHP level.
+            if ($name === 'CURLOPT_FOLLOWLOCATION' and $this->emulateredirects) {
+                // The redirects are emulated elsewhere.
                 curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 0);
                 continue;
             }
@@ -3709,51 +3563,6 @@ class curl {
     }
 
     /**
-     * check_securityhelper_blocklist.
-     * Checks whether the given URL is blocked by checking both plugin's security helpers
-     * and core curl security helper or any curl security helper that passed to curl class constructor.
-     * If ignoresecurity is set to true, skip checking and consider the url is not blocked.
-     * This augments all installed plugin's security helpers if there is any.
-     *
-     * @param string $url the url to check.
-     * @return string - an error message if URL is blocked or null if URL is not blocked.
-     */
-    protected function check_securityhelper_blocklist(string $url): ?string {
-
-        // If curl security is not enabled, do not proceed.
-        if ($this->ignoresecurity) {
-            return null;
-        }
-
-        // Augment all installed plugin's security helpers if there is any.
-        // The plugin's function has to be defined as plugintype_pluginname_curl_security_helper in pluginname/lib.php.
-        $plugintypes = get_plugins_with_function('curl_security_helper');
-
-        // If any of the security helper's function returns true, treat as URL is blocked.
-        foreach ($plugintypes as $plugins) {
-            foreach ($plugins as $pluginfunction) {
-                // Get curl security helper object from plugin lib.php.
-                $pluginsecurityhelper = $pluginfunction();
-                if ($pluginsecurityhelper instanceof \core\files\curl_security_helper_base) {
-                    if ($pluginsecurityhelper->url_is_blocked($url)) {
-                        $this->error = $pluginsecurityhelper->get_blocked_url_string();
-                        return $this->error;
-                    }
-                }
-            }
-        }
-
-        // Check if the URL is blocked in core curl_security_helper or
-        // curl security helper that passed to curl class constructor.
-        if ($this->securityhelper->url_is_blocked($url)) {
-            $this->error = $this->securityhelper->get_blocked_url_string();
-            return $this->error;
-        }
-
-        return null;
-    }
-
-    /**
      * Single HTTP Request
      *
      * @param string $url The URL to request
@@ -3761,25 +3570,21 @@ class curl {
      * @return bool
      */
     protected function request($url, $options = array()) {
-        // Reset here so that the data is valid when result returned from cache, or if we return due to a blocked URL hit.
+        // Reset here so that the data is valid when result returned from cache, or if we return due to a blacklist hit.
         $this->reset_request_state_vars();
 
         if ((defined('PHPUNIT_TEST') && PHPUNIT_TEST)) {
-            $mockresponse = array_pop(self::$mockresponses);
-            if ($mockresponse !== null) {
+            if ($mockresponse = array_pop(self::$mockresponses)) {
                 $this->info = [ 'http_code' => 200 ];
                 return $mockresponse;
             }
         }
 
-        if (empty($this->emulateredirects)) {
-            // Just in case someone had tried to explicitly disable emulated redirects in legacy code.
-            debugging('Attempting to disable emulated redirects has no effect any more!', DEBUG_DEVELOPER);
-        }
-
-        $urlisblocked = $this->check_securityhelper_blocklist($url);
-        if (!is_null($urlisblocked)) {
-            return $urlisblocked;
+        // If curl security is enabled, check the URL against the blacklist before calling curl_exec.
+        // Note: This will only check the base url. In the case of redirects, the blacklist is also after the curl_exec.
+        if (!$this->ignoresecurity && $this->securityhelper->url_is_blocked($url)) {
+            $this->error = $this->securityhelper->get_blocked_url_string();
+            return $this->error;
         }
 
         // Set the URL as a curl option.
@@ -3799,14 +3604,16 @@ class curl {
         $this->errno = curl_errno($curl);
         // Note: $this->response and $this->rawresponse are filled by $hits->formatHeader callback.
 
-        if (intval($this->info['redirect_count']) > 0) {
-            // For security reasons we do not allow the cURL handle to follow redirects on its own.
-            // See setting CURLOPT_FOLLOWLOCATION in {@see self::apply_opt()} method.
-            throw new coding_exception('Internal cURL handle should never follow redirects on its own!',
-                'Reported number of redirects: ' . $this->info['redirect_count']);
+        // In the case of redirects (which curl blindly follows), check the post-redirect URL against the blacklist entries too.
+        if (intval($this->info['redirect_count']) > 0 && !$this->ignoresecurity
+            && $this->securityhelper->url_is_blocked($this->info['url'])) {
+            $this->reset_request_state_vars();
+            $this->error = $this->securityhelper->get_blocked_url_string();
+            curl_close($curl);
+            return $this->error;
         }
 
-        if ($this->options['CURLOPT_FOLLOWLOCATION'] && $this->info['http_code'] != 200) {
+        if ($this->emulateredirects and $this->options['CURLOPT_FOLLOWLOCATION'] and $this->info['http_code'] != 200) {
             $redirects = 0;
 
             while($redirects <= $this->options['CURLOPT_MAXREDIRS']) {
@@ -3840,12 +3647,6 @@ class curl {
                 if (isset($this->info['redirect_url'])) {
                     if (preg_match('|^https?://|i', $this->info['redirect_url'])) {
                         $redirecturl = $this->info['redirect_url'];
-                    } else {
-                        // Emulate CURLOPT_REDIR_PROTOCOLS behaviour which we have set to (CURLPROTO_HTTP | CURLPROTO_HTTPS) only.
-                        $this->errno = CURLE_UNSUPPORTED_PROTOCOL;
-                        $this->error = 'Redirect to a URL with unsuported protocol: ' . $this->info['redirect_url'];
-                        curl_close($curl);
-                        return $this->error;
                     }
                 }
                 if (!$redirecturl) {
@@ -3872,23 +3673,6 @@ class curl {
                             // Relative to current script.
                             $redirecturl = dirname($current).'/'.$redirecturl;
                         }
-                    }
-                }
-
-                $urlisblocked = $this->check_securityhelper_blocklist($redirecturl);
-                if (!is_null($urlisblocked)) {
-                    $this->reset_request_state_vars();
-                    curl_close($curl);
-                    return $urlisblocked;
-                }
-
-                // If the response body is written to a seekable stream resource, reset the stream pointer to avoid
-                // appending multiple response bodies to the same resource.
-                if (!empty($this->options['CURLOPT_FILE'])) {
-                    $streammetadata = stream_get_meta_data($this->options['CURLOPT_FILE']);
-                    if ($streammetadata['seekable']) {
-                        ftruncate($this->options['CURLOPT_FILE'], 0);
-                        rewind($this->options['CURLOPT_FILE']);
                     }
                 }
 
@@ -4212,14 +3996,14 @@ class curl {
         $crlf = "\r\n";
         return preg_replace(
                 // HTTP version and status code (ignore value of code).
-                '~^HTTP/[1-9](\.[0-9])?.*' . $crlf .
+                '~^HTTP/1\..*' . $crlf .
                 // Header name: character between 33 and 126 decimal, except colon.
                 // Colon. Header value: any character except \r and \n. CRLF.
                 '(?:[\x21-\x39\x3b-\x7e]+:[^' . $crlf . ']+' . $crlf . ')*' .
                 // Headers are terminated by another CRLF (blank line).
                 $crlf .
                 // Second HTTP status code, this time must be 200.
-                '(HTTP/[1-9](\.[0-9])? 200)~', '$2', $input);
+                '(HTTP/1.[01] 200 )~', '$1', $input);
     }
 }
 
@@ -4367,16 +4151,16 @@ function file_pluginfile($relativepath, $forcedownload, $preview = null, $offlin
     global $DB, $CFG, $USER;
     // relative path must start with '/'
     if (!$relativepath) {
-        throw new \moodle_exception('invalidargorconf');
+        print_error('invalidargorconf');
     } else if ($relativepath[0] != '/') {
-        throw new \moodle_exception('pathdoesnotstartslash');
+        print_error('pathdoesnotstartslash');
     }
 
     // extract relative path components
     $args = explode('/', ltrim($relativepath, '/'));
 
     if (count($args) < 3) { // always at least context, component and filearea
-        throw new \moodle_exception('invalidarguments');
+        print_error('invalidarguments');
     }
 
     $contextid = (int)array_shift($args);
@@ -4400,7 +4184,7 @@ function file_pluginfile($relativepath, $forcedownload, $preview = null, $offlin
         }
 
         if (empty($CFG->enableblogs)) {
-            throw new \moodle_exception('siteblogdisable', 'blog');
+            print_error('siteblogdisable', 'blog');
         }
 
         $entryid = (int)array_shift($args);
@@ -4410,7 +4194,7 @@ function file_pluginfile($relativepath, $forcedownload, $preview = null, $offlin
         if ($CFG->bloglevel < BLOG_GLOBAL_LEVEL) {
             require_login();
             if (isguestuser()) {
-                throw new \moodle_exception('noguest');
+                print_error('noguest');
             }
             if ($CFG->bloglevel == BLOG_USER_LEVEL) {
                 if ($USER->id != $entry->userid) {
@@ -4605,37 +4389,6 @@ function file_pluginfile($relativepath, $forcedownload, $preview = null, $offlin
             \core\session\manager::write_close(); // Unlock session during file serving.
             send_stored_file($file, 0, 0, true, $sendfileoptions);
 
-        } else if ($filearea === 'event_description' and $context->contextlevel == CONTEXT_COURSECAT) {
-            if ($CFG->forcelogin) {
-                require_login();
-            }
-
-            // Get category, this will also validate access.
-            $category = core_course_category::get($context->instanceid);
-
-            // Get the event ID from the args array, load event.
-            $eventid = array_shift($args);
-            $event = $DB->get_record('event', [
-                'id' => (int) $eventid,
-                'eventtype' => 'category',
-                'categoryid' => $category->id,
-            ]);
-
-            if (!$event) {
-                send_file_not_found();
-            }
-
-            // Retrieve file from storage, and serve.
-            $filename = array_pop($args);
-            $filepath = $args ? '/' . implode('/', $args) .'/' : '/';
-            $file = $fs->get_file($context->id, $component, $filearea, $eventid, $filepath, $filename);
-            if (!$file || $file->is_directory()) {
-                send_file_not_found();
-            }
-
-            // Unlock session during file serving.
-            \core\session\manager::write_close();
-            send_stored_file($file, HOURSECS, 0, $forcedownload, $sendfileoptions);
         } else if ($filearea === 'event_description' and $context->contextlevel == CONTEXT_COURSE) {
 
             // Respect forcelogin and require login unless this is the site.... it probably
@@ -4771,15 +4524,33 @@ function file_pluginfile($relativepath, $forcedownload, $preview = null, $offlin
 
             $userid = $context->instanceid;
 
-            if (!empty($CFG->forceloginforprofiles)) {
-                require_once("{$CFG->dirroot}/user/lib.php");
+            if ($USER->id == $userid) {
+                // always can access own
 
+            } else if (!empty($CFG->forceloginforprofiles)) {
                 require_login();
 
-                // Verify the current user is able to view the profile of the supplied user anywhere.
-                $user = core_user::get_user($userid);
-                if (!user_can_view_profile($user, null, $context)) {
+                if (isguestuser()) {
                     send_file_not_found();
+                }
+
+                // we allow access to site profile of all course contacts (usually teachers)
+                if (!has_coursecontact_role($userid) && !has_capability('moodle/user:viewdetails', $context)) {
+                    send_file_not_found();
+                }
+
+                $canview = false;
+                if (has_capability('moodle/user:viewdetails', $context)) {
+                    $canview = true;
+                } else {
+                    $courses = enrol_get_my_courses();
+                }
+
+                while (!$canview && count($courses) > 0) {
+                    $course = array_shift($courses);
+                    if (has_capability('moodle/user:viewdetails', context_course::instance($course->id))) {
+                        $canview = true;
+                    }
                 }
             }
 
@@ -4801,14 +4572,23 @@ function file_pluginfile($relativepath, $forcedownload, $preview = null, $offlin
             }
 
             if (!empty($CFG->forceloginforprofiles)) {
-                require_once("{$CFG->dirroot}/user/lib.php");
-
                 require_login();
+                if (isguestuser()) {
+                    print_error('noguest');
+                }
 
-                // Verify the current user is able to view the profile of the supplied user in current course.
-                $user = core_user::get_user($userid);
-                if (!user_can_view_profile($user, $course, $usercontext)) {
-                    send_file_not_found();
+                //TODO: review this logic of user profile access prevention
+                if (!has_coursecontact_role($userid) and !has_capability('moodle/user:viewdetails', $usercontext)) {
+                    print_error('usernotavailable');
+                }
+                if (!has_capability('moodle/user:viewdetails', $context) && !has_capability('moodle/user:viewdetails', $usercontext)) {
+                    print_error('cannotviewprofile');
+                }
+                if (!is_enrolled($context, $userid)) {
+                    print_error('notenrolledprofile');
+                }
+                if (groups_get_course_groupmode($course) == SEPARATEGROUPS and !has_capability('moodle/site:accessallgroups', $context)) {
+                    print_error('groupnotamember');
                 }
             }
 
@@ -5140,26 +4920,16 @@ function file_pluginfile($relativepath, $forcedownload, $preview = null, $offlin
             send_file_not_found();
         }
 
-        $componentargs = fullclone($args);
         $itemid = (int)array_shift($args);
         $filename = array_pop($args);
         $filepath = $args ? '/'.implode('/', $args).'/' : '/';
+        if (!$file = $fs->get_file($context->id, $component, $filearea, $itemid, $filepath, $filename) or
+            $file->is_directory()) {
+            send_file_not_found();
+        }
 
         \core\session\manager::write_close(); // Unlock session during file serving.
-
-        $contenttype = $DB->get_field('contentbank_content', 'contenttype', ['id' => $itemid]);
-        if (component_class_callback("\\{$contenttype}\\contenttype", 'pluginfile',
-                [$course, null, $context, $filearea, $componentargs, $forcedownload, $sendfileoptions], false) === false) {
-
-            if (!$file = $fs->get_file($context->id, $component, $filearea, $itemid, $filepath, $filename) or
-
-                $file->is_directory()) {
-                send_file_not_found();
-
-            } else {
-                send_stored_file($file, 0, 0, true, $sendfileoptions); // Must force download - security!
-            }
-        }
+        send_stored_file($file, 0, 0, true, $sendfileoptions); // must force download - security!
     } else if (strpos($component, 'mod_') === 0) {
         $modname = substr($component, 4);
         if (!file_exists("$CFG->dirroot/mod/$modname/lib.php")) {

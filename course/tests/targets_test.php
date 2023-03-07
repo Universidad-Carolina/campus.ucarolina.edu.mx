@@ -14,7 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core_course;
+/**
+ * Unit tests for core targets.
+ *
+ * @package   core_course
+ * @copyright 2019 Victor Deniz <victor@moodle.com>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 defined('MOODLE_INTERNAL') || die();
 global $CFG;
@@ -33,7 +39,7 @@ require_once($CFG->dirroot . '/lib/grade/constants.php');
  * @copyright 2019 Victor Deniz <victor@moodle.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class targets_test extends \advanced_testcase {
+class core_analytics_targets_testcase extends advanced_testcase {
 
     /**
      * Provides course params for the {@link self::test_core_target_course_completion_analysable()} method.
@@ -42,7 +48,7 @@ class targets_test extends \advanced_testcase {
      */
     public function analysable_provider() {
 
-        $now = new \DateTime("now", \core_date::get_server_timezone_object());
+        $now = new DateTime("now", core_date::get_server_timezone_object());
         $year = $now->format('Y');
         $month = $now->format('m');
 
@@ -345,7 +351,7 @@ class targets_test extends \advanced_testcase {
 
         try {
             $course = $this->getDataGenerator()->create_course($courseparams);
-        } catch (\moodle_exception $e) {
+        } catch (moodle_exception $e) {
             $course = $this->getDataGenerator()->create_course();
             $courserecord = $courseparams;
             $courserecord['id'] = $course->id;
@@ -366,7 +372,7 @@ class targets_test extends \advanced_testcase {
                     $cm->id => 1
                 ]
             ];
-            $criterion = new \completion_criteria_activity();
+            $criterion = new completion_criteria_activity();
             $criterion->update_config($criteriadata);
         }
 
@@ -399,7 +405,7 @@ class targets_test extends \advanced_testcase {
 
         $this->resetAfterTest(true);
 
-        $courserecord = new \stdClass();
+        $courserecord = new stdClass();
         $courserecord->startdate = $coursestart;
         $courserecord->enddate = $courseend;
 
@@ -411,7 +417,7 @@ class targets_test extends \advanced_testcase {
         $analyser = new \core\analytics\analyser\student_enrolments(1, $target, [], [], []);
         $analysable = new \core_analytics\course($course);
 
-        $class = new \ReflectionClass('\core\analytics\analyser\student_enrolments');
+        $class = new ReflectionClass('\core\analytics\analyser\student_enrolments');
         $method = $class->getMethod('get_all_samples');
         $method->setAccessible(true);
 
@@ -446,7 +452,7 @@ class targets_test extends \advanced_testcase {
         $analyser = new \core\analytics\analyser\student_enrolments(1, $target, [], [], []);
         $analysable = new \core_analytics\course($course);
 
-        $class = new \ReflectionClass('\core\analytics\analyser\student_enrolments');
+        $class = new ReflectionClass('\core\analytics\analyser\student_enrolments');
         $method = $class->getMethod('get_all_samples');
         $method->setAccessible(true);
 
@@ -454,7 +460,7 @@ class targets_test extends \advanced_testcase {
         $target->add_sample_data($samplesdata);
         $sampleid = reset($sampleids);
 
-        $reftarget = new \ReflectionObject($target);
+        $reftarget = new ReflectionObject($target);
         $refmethod = $reftarget->getMethod('calculate_sample');
         $refmethod->setAccessible(true);
 
@@ -530,7 +536,7 @@ class targets_test extends \advanced_testcase {
         $analyser = new \core\analytics\analyser\student_enrolments(1, $target, [], [], []);
         $analysable = new \core_analytics\course($data['course']);
 
-        $class = new \ReflectionClass('\core\analytics\analyser\student_enrolments');
+        $class = new ReflectionClass('\core\analytics\analyser\student_enrolments');
         $method = $class->getMethod('get_all_samples');
         $method->setAccessible(true);
 
@@ -538,7 +544,7 @@ class targets_test extends \advanced_testcase {
         $target->add_sample_data($samplesdata);
         $sampleid = reset($sampleids);
 
-        $class = new \ReflectionClass('\core_course\analytics\target\course_competencies');
+        $class = new ReflectionClass('\core_course\analytics\target\course_competencies');
         $method = $class->getMethod('calculate_sample');
         $method->setAccessible(true);
 
@@ -576,7 +582,7 @@ class targets_test extends \advanced_testcase {
         $this->assertEquals(get_string('gradetopassnotset', 'course'), $target->is_valid_analysable($analysable));
 
         // Set grade to pass.
-        $courseitem = \grade_item::fetch_course_item($course1->id);
+        $courseitem = grade_item::fetch_course_item($course1->id);
         $courseitem->gradepass = 50;
         $DB->update_record('grade_items', $courseitem);
         // Since the grade to pass value is cached in the target, a new one it is instanciated.
@@ -609,7 +615,7 @@ class targets_test extends \advanced_testcase {
         // Expectations format being array($userid => expectation, ...)
         $expectations = [];
 
-        $courseitem = \grade_item::fetch_course_item($course1->id);
+        $courseitem = grade_item::fetch_course_item($course1->id);
         // Student1 (< gradepass) fails, so it's non achieved sample.
         $courseitem->update_final_grade($student1->id, 30);
         $expectations[$student1->id] = 1;
@@ -628,14 +634,14 @@ class targets_test extends \advanced_testcase {
         $analyser = new \core\analytics\analyser\student_enrolments(1, $target, [], [], []);
         $analysable = new \core_analytics\course($course1);
 
-        $class = new \ReflectionClass('\core\analytics\analyser\student_enrolments');
+        $class = new ReflectionClass('\core\analytics\analyser\student_enrolments');
         $method = $class->getMethod('get_all_samples');
         $method->setAccessible(true);
 
         list($sampleids, $samplesdata) = $method->invoke($analyser, $analysable);
         $target->add_sample_data($samplesdata);
 
-        $class = new \ReflectionClass('\core_course\analytics\target\course_gradetopass');
+        $class = new ReflectionClass('\core_course\analytics\target\course_gradetopass');
         $method = $class->getMethod('calculate_sample');
         $method->setAccessible(true);
 

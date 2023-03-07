@@ -36,15 +36,9 @@
     min-height: 520px;
 }
 .file-picker .fp-navbar {
+    border-bottom: 1px solid #e5e5e5;
     min-height: 40px;
     padding: 4px;
-}
-
-.fp-navbar {
-    border-color: $input-border-color;
-    border-bottom: 0;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
 }
 
 .file-picker .fp-content {
@@ -608,8 +602,7 @@ a.ygtvspacer:hover {
 .filepicker-filelist,
 .filemanager-container {
     min-height: 140px;
-    border: 1px solid $input-border-color;
-    @include border-radius();
+    border-top: 0;
 }
 
 .filemanager .fp-content {
@@ -621,14 +614,9 @@ a.ygtvspacer:hover {
 .filemanager-container,
 .filepicker-filelist {
     overflow: hidden;
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
 }
 
 .file-picker .yui3-datatable-header {
-    /*rtl:raw:
-    text-align: right;
-    */
     background: initial;
 }
 
@@ -700,9 +688,6 @@ a.ygtvspacer:hover {
 .filemanager {
 
     .yui3-datatable-header {
-        /*rtl:raw:
-        text-align: right;
-        */
         background: #fff !important;
         border-bottom: 1px solid #ccc !important;
         border-left: 0 solid #fff !important;
@@ -844,11 +829,11 @@ a.ygtvspacer:hover {
 }
 
 .dndupload-arrow {
+    background: url([[pix:theme|fp/dnd_arrow]]) center no-repeat;
     width: 100%;
     height: 80px;
     position: absolute;
     top: 5px;
-    color: $gray-500;
 }
 
 .fitem.disabled .filepicker-container,

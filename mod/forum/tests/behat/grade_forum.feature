@@ -1,4 +1,4 @@
-@mod @mod_forum @core_grades @javascript
+@mod @mod_forum @core_grades
 Feature: I can grade a students interaction across a forum
   In order to assess a student's contributions
   As a teacher
@@ -28,6 +28,7 @@ Feature: I can grade a students interaction across a forum
     And I am on "Course 1" course homepage
     And I turn editing mode on
 
+  @javascript
   Scenario: Ensure that forum grade settings do not leak to Ratings
     Given I add a "Forum" to section "1"
     And I expand all fieldsets
@@ -62,16 +63,17 @@ Feature: I can grade a students interaction across a forum
     And I turn editing mode on
 
     # There shouldn't be any Ratings grade item.
-    Then I should see "Test Forum 1 whole forum"
-    But I should not see "Test Forum 1 rating"
+    Then I should see "Whole forum grade"
+    But I should not see "Rating grade"
 
     # The values saved should be reflected here.
-    Given I click on "Edit  forum Test Forum 1 whole forum" "link"
+    Given I click on "Edit  forum Whole forum grade for Test Forum 1" "link"
     When I expand all fieldsets
     Then the field "Maximum grade" matches value "10"
     Then the field "Grade to pass" matches value "4"
     And I should see "Tutor" in the "Parent category" "fieldset"
 
+  @javascript
   Scenario: Ensure that Ratings settings do not leak to Forum grading
     Given I add a "Forum" to section "1"
     And I expand all fieldsets
@@ -115,31 +117,27 @@ Feature: I can grade a students interaction across a forum
     And I set the field "Ratings > Grade to pass" to "4"
     When I press "Save and return to course"
     And I navigate to "View > Grader report" in the course gradebook
+    And I turn editing mode on
 
     # There shouldn't be any Whole forum grade gradeitem.
-    Then I should see "Test Forum 1 rating"
-    But I should not see "Test Forum 1 whole forum"
+    Then I should see "Rating grade"
+    But I should not see "Whole forum grade"
 
     # The values saved should be reflected here.
-    Given I click on "Edit  forum Test Forum 1 rating" "link"
+    Given I click on "Edit  forum Rating grade for Test Forum 1" "link"
     When I expand all fieldsets
     Then the field "Maximum grade" matches value "10"
     Then the field "Grade to pass" matches value "4"
     And I should see "Tutor" in the "Parent category" "fieldset"
 
   Scenario: Setting both a rating and a whole forum grade does not bleed
-    Given the following "activity" exists:
-      | activity                      | forum        |
-      | course                        | C1           |
-      | idnumber                      | 0001         |
-      | name                          | Test Forum 1 |
-      | intro                         | Test         |
-      | section                       | 1            |
-    And I am on "Course 1" course homepage
-    And I follow "Test Forum 1"
-    And I navigate to "Settings" in current page administration
+    Given I add a "Forum" to section "1"
     And I expand all fieldsets
-    And I set the field "Ratings > Aggregate type" to "Count of ratings"
+    And I set the following fields to these values:
+      | Forum name     | Test Forum 1    |
+      | Description    | Test               |
+
+    When I set the field "Ratings > Aggregate type" to "Count of ratings"
     And I set the field "Ratings > Type" to "Point"
     And I set the field "Ratings > Maximum grade" to "100"
     And I set the field "Ratings > Grade category" to "Peers"
@@ -153,18 +151,18 @@ Feature: I can grade a students interaction across a forum
     And I turn editing mode on
 
     # There shouldn't be any Whole forum grade gradeitem.
-    Then I should see "Test Forum 1 rating"
-    And I should see "Test Forum 1 whole forum"
+    Then I should see "Rating grade"
+    And I should see "Whole forum grade"
 
     # The values saved should be reflected here.
-    Given I click on "Edit  forum Test Forum 1 rating" "link"
+    Given I click on "Edit  forum Rating grade for Test Forum 1" "link"
     When I expand all fieldsets
     Then the field "Maximum grade" matches value "100"
     Then the field "Grade to pass" matches value "40"
     And I should see "Peers" in the "Parent category" "fieldset"
     And I press "cancel"
 
-    Given I click on "Edit  forum Test Forum 1 whole forum" "link"
+    Given I click on "Edit  forum Whole forum grade for Test Forum 1" "link"
     When I expand all fieldsets
     Then the field "Maximum grade" matches value "10"
     Then the field "Grade to pass" matches value "4"

@@ -22,6 +22,8 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * The renderer for the quiz_grading module.
  *
@@ -146,7 +148,9 @@ class quiz_grading_renderer extends plugin_renderer_base {
 
         $output .= $this->heading(get_string('gradingattemptsxtoyofz', 'quiz_grading', $paginginfo), 3);
 
-        $output .= $this->render_paging_bar($pagingbar);
+        if ($pagingbar->count > $pagingbar->pagesize && $pagingbar->order != 'random') {
+            $output .= $this->paging_bar($pagingbar->count, $pagingbar->page, $pagingbar->pagesize, $pagingbar->pagingurl);
+        }
 
         $output .= html_writer::start_tag('form', [
                 'method' => 'post',
@@ -165,11 +169,6 @@ class quiz_grading_renderer extends plugin_renderer_base {
                 'value' => get_string('saveandnext', 'quiz_grading')
         ]), ['class' => 'mdl-align']);
         $output .= html_writer::end_tag('div') . html_writer::end_tag('form');
-
-        $output .= $this->render_paging_bar($pagingbar);
-
-        // Add the form change checker.
-        $this->page->requires->js_call_amd('core_form/changechecker', 'watchFormById', ['manualgradingform']);
 
         return $output;
     }
@@ -194,18 +193,5 @@ class quiz_grading_renderer extends plugin_renderer_base {
         $output .= $questionusage->render_question($slot, $displayoptions, $questionnumber);
 
         return $output;
-    }
-
-    /**
-     * Render paging bar.
-     *
-     * @param object $pagingbar Pagination bar information.
-     * @return string The HTML for the question display.
-     */
-    public function render_paging_bar(object $pagingbar): string {
-        if ($pagingbar->count > $pagingbar->pagesize && $pagingbar->order != 'random') {
-            return $this->paging_bar($pagingbar->count, $pagingbar->page, $pagingbar->pagesize, $pagingbar->pagingurl);
-        }
-        return '';
     }
 }

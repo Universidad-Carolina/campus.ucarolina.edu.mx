@@ -302,14 +302,11 @@ class core_string_manager_standard implements core_string_manager {
             'strftimedatefullshort' => 1,
             'strftimedateshort' => 1,
             'strftimedatetime' => 1,
-            'strftimedatetimeaccurate' => 1,
             'strftimedatetimeshort' => 1,
-            'strftimedatetimeshortaccurate' => 1,
             'strftimedaydate' => 1,
             'strftimedaydatetime' => 1,
             'strftimedayshort' => 1,
             'strftimedaytime' => 1,
-            'strftimemonth' => 1,
             'strftimemonthyear' => 1,
             'strftimerecent' => 1,
             'strftimerecentfull' => 1,
@@ -430,7 +427,6 @@ class core_string_manager_standard implements core_string_manager {
 
         $countries = $this->load_component_strings('core_countries', $lang);
         core_collator::asort($countries);
-
         if (!$returnall and !empty($CFG->allcountrycodes)) {
             $enabled = explode(',', $CFG->allcountrycodes);
             $return = array();
@@ -439,10 +435,7 @@ class core_string_manager_standard implements core_string_manager {
                     $return[$c] = $countries[$c];
                 }
             }
-
-            if (!empty($return)) {
-                return $return;
-            }
+            return $return;
         }
 
         return $countries;
@@ -526,7 +519,7 @@ class core_string_manager_standard implements core_string_manager {
         $cachekey = 'list_'.$this->get_key_suffix();
         $cachedlist = $this->menucache->get($cachekey);
         if ($cachedlist !== false) {
-            // The cache content is valid.
+            // The cache content is invalid.
             if ($returnall or empty($this->translist)) {
                 return $cachedlist;
             }
@@ -536,13 +529,7 @@ class core_string_manager_standard implements core_string_manager {
                     $languages[$langcode] = !empty($this->transaliases[$langcode]) ? $this->transaliases[$langcode] : $langname;
                 }
             }
-
-            // If there are no valid enabled translations, then return all languages.
-            if (!empty($languages)) {
-                return $languages;
-            } else {
-                return $cachedlist;
-            }
+            return $languages;
         }
 
         // Get all languages available in system.
@@ -593,12 +580,7 @@ class core_string_manager_standard implements core_string_manager {
             }
         }
 
-        // If there are no valid enabled translations, then return all languages.
-        if (!empty($languages)) {
-            return $languages;
-        } else {
-            return $cachedlist;
-        }
+        return $languages;
     }
 
     /**

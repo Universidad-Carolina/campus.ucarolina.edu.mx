@@ -199,7 +199,7 @@ class repository_flickr extends repository {
         $response = $this->flickr->call('photos.search', [
             'user_id' => 'me',
             'per_page' => 24,
-            'extras' => 'original_format,url_sq,url_o,date_upload,last_update,owner_name,license',
+            'extras' => 'original_format,url_sq,url_o,date_upload,owner_name',
             'page' => $page,
             'text' => $searchtext,
         ]);
@@ -210,6 +210,7 @@ class repository_flickr extends repository {
         }
 
         // Convert the response to the format expected by the filepicker.
+
         $ret = [
             'manage' => 'https://www.flickr.com/photos/organize',
             'list' => [],
@@ -237,23 +238,18 @@ class repository_flickr extends repository {
                     $p->title .= $format;
                 }
 
-                // Perform a HEAD request to the image to obtain it's Content-Length.
-                $curl = new curl();
-                $curl->head($p->url_o);
-
                 $ret['list'][] = [
                     'title' => $p->title,
                     'source' => $p->id,
                     'id' => $p->id,
                     'thumbnail' => $p->url_sq,
-                    'datecreated' => $p->dateupload,
-                    'datemodified' => $p->lastupdate,
+                    'thumbnail_width' => $p->width_sq,
+                    'thumbnail_height' => $p->height_sq,
+                    'date' => $p->dateupload,
                     'url' => $p->url_o,
                     'author' => $p->ownername,
-                    'size' => (int)($curl->get_info()['download_content_length']),
-                    'image_width' => $p->width_o,
-                    'image_height' => $p->height_o,
-                    'license' => $this->license4moodle((int) $p->license),
+                    'size' => null,
+                    'license' => '',
                 ];
             }
         }
@@ -262,26 +258,6 @@ class repository_flickr extends repository {
         $ret['list'] = array_filter($ret['list'], array($this, 'filter'));
 
         return $ret;
-    }
-
-    /**
-     * Map Flickr license ID to those used internally by Moodle
-     *
-     * @param int $licenseid
-     * @return string
-     */
-    public function license4moodle(int $licenseid): string {
-        $license = [
-            0 => 'allrightsreserved',
-            1 => 'cc-nc-sa',
-            2 => 'cc-nc',
-            3 => 'cc-nc-nd',
-            4 => 'cc',
-            5 => 'cc-sa',
-            6 => 'cc-nd',
-            7 => 'other'
-        ];
-        return $license[$licenseid];
     }
 
     /**

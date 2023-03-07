@@ -21,15 +21,8 @@
  * @copyright  2016 Damyon Wiese <damyon@moodle.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-define(['jquery', 'core_form/events'], function($, FormEvent) {
+define(['jquery', 'core/event'], function($, Event) {
     return {
-        /**
-         * Enhance the supplied element to handle form field errors.
-         *
-         * @method
-         * @param {String} elementid
-         * @listens event:formFieldValidationFailed
-         */
         enhance: function(elementid) {
             var element = document.getElementById(elementid);
             if (!element) {
@@ -38,26 +31,10 @@ define(['jquery', 'core_form/events'], function($, FormEvent) {
                 return;
             }
 
-            element.addEventListener(FormEvent.eventTypes.formFieldValidationFailed, e => {
-                const msg = e.detail.message;
-                e.preventDefault();
-
+            $(element).on(Event.Events.FORM_FIELD_VALIDATION, function(event, msg) {
+                event.preventDefault();
                 var parent = $(element).closest('.form-group');
                 var feedback = parent.find('.form-control-feedback');
-                const feedbackId = feedback.attr('id');
-
-                // Get current aria-describedby value.
-                let describedBy = $(element).attr('aria-describedby');
-                if (typeof describedBy === "undefined") {
-                    describedBy = '';
-                }
-                // Split aria-describedby attribute into an array of IDs if necessary.
-                let describedByIds = [];
-                if (describedBy.length) {
-                    describedByIds = describedBy.split(" ");
-                }
-                // Find the the feedback container in the aria-describedby attribute.
-                const feedbackIndex = describedByIds.indexOf(feedbackId);
 
                 // Sometimes (atto) we have a hidden textarea backed by a real contenteditable div.
                 if (($(element).prop("tagName") == 'TEXTAREA') && parent.find('[contenteditable]')) {
@@ -67,11 +44,7 @@ define(['jquery', 'core_form/events'], function($, FormEvent) {
                     parent.addClass('has-danger');
                     parent.data('client-validation-error', true);
                     $(element).addClass('is-invalid');
-                    // Append the feedback ID to the aria-describedby attribute if it doesn't exist yet.
-                    if (feedbackIndex === -1) {
-                        describedByIds.push(feedbackId);
-                        $(element).attr('aria-describedby', describedByIds.join(" "));
-                    }
+                    $(element).attr('aria-describedby', feedback.attr('id'));
                     $(element).attr('aria-invalid', true);
                     feedback.attr('tabindex', 0);
                     feedback.html(msg);
@@ -88,20 +61,7 @@ define(['jquery', 'core_form/events'], function($, FormEvent) {
                         parent.removeClass('has-danger');
                         parent.data('client-validation-error', false);
                         $(element).removeClass('is-invalid');
-                        // If the aria-describedby attribute contains the error container's ID, remove it.
-                        if (feedbackIndex > -1) {
-                            describedByIds.splice(feedbackIndex, 1);
-                        }
-                        // Check the remaining element IDs in the aria-describedby attribute.
-                        if (describedByIds.length) {
-                            // If there's at least one, combine them with a blank space and update the aria-describedby attribute.
-                            describedBy = describedByIds.join(" ");
-                            // Put back the new describedby attribute.
-                            $(element).attr('aria-describedby', describedBy);
-                        } else {
-                            // If there's none, remove the aria-describedby attribute.
-                            $(element).removeAttr('aria-describedby');
-                        }
+                        $(element).removeAttr('aria-describedby');
                         $(element).attr('aria-invalid', false);
                         feedback.hide();
                     }
@@ -109,7 +69,7 @@ define(['jquery', 'core_form/events'], function($, FormEvent) {
             });
 
             var form = element.closest('form');
-            if (form && !('boostFormErrorsEnhanced' in form.dataset)) {
+            if (!('boostFormErrorsEnhanced' in form.dataset)) {
                 form.addEventListener('submit', function() {
                     var visibleError = $('.form-control-feedback:visible');
                     if (visibleError.length) {

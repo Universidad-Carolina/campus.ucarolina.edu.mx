@@ -64,9 +64,6 @@ class MoodleQuickForm_editor extends HTML_QuickForm_element implements templatab
     /** @var array values for editor */
     protected $_values     = array('text'=>null, 'format'=>null, 'itemid'=>null);
 
-    /** @var bool if true label will be hidden */
-    protected $_hiddenLabel = false;
-
     /**
      * Constructor
      *
@@ -246,15 +243,6 @@ class MoodleQuickForm_editor extends HTML_QuickForm_element implements templatab
      */
     function setSubdirs($allow) {
         $this->_options['subdirs'] = (int)($allow == 1);
-    }
-
-    /**
-     * Returns editor text content
-     *
-     * @return string Text content
-     */
-    public function get_text(): string {
-        return $this->_values['text'];
     }
 
     /**
@@ -500,21 +488,12 @@ class MoodleQuickForm_editor extends HTML_QuickForm_element implements templatab
     }
 
     /**
-     * Returns the formatted value. The return from parent class is not acceptable.
+     * What to display when element is frozen.
      *
-     * @return string
+     * @return empty string
      */
-    public function getFrozenHtml(): string {
-        return format_text($this->get_text(), $this->getFormat()) . $this->_getPersistantData();
-    }
+    function getFrozenHtml() {
 
-    /**
-     * Sets label to be hidden.
-     *
-     * @param bool $hiddenLabel Whether the label should be hidden or not.
-     * @return void
-     */
-    function setHiddenLabel($hiddenLabel) {
-        $this->_hiddenLabel = $hiddenLabel;
+        return '';
     }
 }

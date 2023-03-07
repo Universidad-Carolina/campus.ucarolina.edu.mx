@@ -35,17 +35,15 @@ $forcenew = optional_param('forcenew', false, PARAM_BOOL); // Used to force a ne
 $page = optional_param('page', -1, PARAM_INT); // Page to jump to in the attempt.
 
 if (!$cm = get_coursemodule_from_id('quiz', $id)) {
-    throw new \moodle_exception('invalidcoursemodule');
+    print_error('invalidcoursemodule');
 }
 if (!$course = $DB->get_record('course', array('id' => $cm->course))) {
-    throw new \moodle_exception("coursemisconf");
+    print_error("coursemisconf");
 }
 
 $quizobj = quiz::create($cm->instance, $USER->id);
 // This script should only ever be posted to, so set page URL to the view page.
 $PAGE->set_url($quizobj->view_url());
-// During quiz attempts, the browser back/forwards buttons should force a reload.
-$PAGE->set_cacheable(false);
 
 // Check login and sesskey.
 require_login($quizobj->get_course(), false, $quizobj->get_cm());
@@ -57,7 +55,7 @@ if (!$quizobj->has_questions()) {
     if ($quizobj->has_capability('mod/quiz:manage')) {
         redirect($quizobj->edit_url());
     } else {
-        throw new \moodle_exception('cannotstartnoquestions', 'quiz', $quizobj->view_url());
+        print_error('cannotstartnoquestions', 'quiz', $quizobj->view_url());
     }
 }
 
@@ -72,7 +70,7 @@ list($currentattemptid, $attemptnumber, $lastattempt, $messages, $page) =
 // Check access.
 if (!$quizobj->is_preview_user() && $messages) {
     $output = $PAGE->get_renderer('mod_quiz');
-    throw new \moodle_exception('attempterror', 'quiz', $quizobj->view_url(),
+    print_error('attempterror', 'quiz', $quizobj->view_url(),
             $output->access_messages($messages));
 }
 

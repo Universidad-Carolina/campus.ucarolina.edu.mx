@@ -25,6 +25,8 @@ Feature: Edit quiz page - pagination
   Scenario: Repaginate questions with N question(s) per page as well as clicking
     on "add page break" or "Remove page break" icons to repaginate in any desired format.
 
+    Then I should see "Editing quiz: Quiz 1"
+
     # Add the first Essay question.
     And I open the action menu in ".page-add-actions" "css_element"
     And I follow "a new question"
@@ -34,7 +36,8 @@ Feature: Edit quiz page - pagination
     And I set the field "Question name" to "Essay 01 new"
     And I set the field "Question text" to "Please write 100 words about Essay 01"
     And I press "id_submitbutton"
-    Then I should see "Essay 01 new" on quiz page "1"
+    Then I should see "Editing quiz: Quiz 1"
+    And I should see "Essay 01 new" on quiz page "1"
 
     # Add the second Essay question.
     And I open the action menu in ".page-add-actions" "css_element"
@@ -45,7 +48,8 @@ Feature: Edit quiz page - pagination
     And I set the field "Question name" to "Essay 02 new"
     And I set the field "Question text" to "Please write 200 words about Essay 02"
     And I press "id_submitbutton"
-    Then I should see "Essay 01 new" on quiz page "1"
+    Then I should see "Editing quiz: Quiz 1"
+    And I should see "Essay 01 new" on quiz page "1"
     And I should see "Essay 02 new" on quiz page "1"
 
     # Start repaginating.
@@ -69,7 +73,8 @@ Feature: Edit quiz page - pagination
     And I set the field "Question name" to "Essay 03 new"
     And I set the field "Question text" to "Please write 200 words about Essay 03"
     And I press "id_submitbutton"
-    Then I should see "Essay 01 new" on quiz page "1"
+    Then I should see "Editing quiz: Quiz 1"
+    And I should see "Essay 01 new" on quiz page "1"
     And I should see "Essay 02 new" on quiz page "1"
     And I should see "Essay 03 new" on quiz page "1"
     And I should not see "Page 2"
@@ -102,7 +107,7 @@ Feature: Edit quiz page - pagination
     # Repaginate one question per page.
     When I press "Repaginate"
     And I set the field "menuquestionsperpage" to "1"
-    And I click on "Go" "button" in the "Repaginate" "dialogue"
+    And I press "Go"
     Then I should see "Essay 01 new" on quiz page "1"
     And I should see "Essay 02 new" on quiz page "2"
     And I should see "Essay 03 new" on quiz page "3"
@@ -116,7 +121,8 @@ Feature: Edit quiz page - pagination
     When I set the field "Question name" to "Essay 04 new"
     And I set the field "Question text" to "Please write 300 words about Essay 04"
     And I press "id_submitbutton"
-    Then I should see "Essay 01 new" on quiz page "1"
+    Then I should see "Editing quiz: Quiz 1"
+    And I should see "Essay 01 new" on quiz page "1"
     And I should see "Essay 02 new" on quiz page "2"
     And I should see "Essay 03 new" on quiz page "3"
     And I should see "Essay 04 new" on quiz page "3"
@@ -130,7 +136,7 @@ Feature: Edit quiz page - pagination
     # Repaginate with 2 questions per page.
     When I press "Repaginate"
     And I set the field "menuquestionsperpage" to "2"
-    And I click on "Go" "button" in the "Repaginate" "dialogue"
+    And I press "Go"
     Then I should see "Essay 01 new" on quiz page "1"
     And I should see "Essay 02 new" on quiz page "1"
     And I should see "Essay 03 new" on quiz page "2"
@@ -139,7 +145,7 @@ Feature: Edit quiz page - pagination
     # Repaginate with unlimited questions per page (All questions on Page 1).
     When I press "Repaginate"
     And I set the field "menuquestionsperpage" to "Unlimited"
-    And I click on "Go" "button" in the "Repaginate" "dialogue"
+    And I press "Go"
     Then I should see "Essay 01 new" on quiz page "1"
     And I should see "Essay 02 new" on quiz page "1"
     And I should see "Essay 03 new" on quiz page "1"

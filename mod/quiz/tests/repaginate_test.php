@@ -22,22 +22,19 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace mod_quiz;
-
-use quiz;
-
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 require_once($CFG->dirroot . '/mod/quiz/classes/repaginate.php');
 
+
 /**
  * Testable subclass, giving access to the protected methods of {@link \mod_quiz\repaginate}
  * @copyright 2014 The Open Univsersity
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class mod_quiz_repaginate_testable extends repaginate {
+class mod_quiz_repaginate_testable extends \mod_quiz\repaginate {
 
     public function __construct($quizid = 0, $slots = null) {
         return parent::__construct($quizid, $slots);
@@ -64,19 +61,19 @@ class mod_quiz_repaginate_testable extends repaginate {
  * @copyright 2014 The Open University
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class repaginate_test extends \advanced_testcase {
+class mod_quiz_repaginate_test extends advanced_testcase {
 
     /** @var array stores the slots. */
     private $quizslots;
     /** @var mod_quiz_repaginate_testable the object being tested. */
     private $repaginate = null;
 
-    public function setUp(): void {
+    public function setUp() {
         $this->set_quiz_slots($this->get_quiz_object()->get_slots());
         $this->repaginate = new mod_quiz_repaginate_testable(0, $this->quizslots);
     }
 
-    public function tearDown(): void {
+    public function tearDown() {
         $this->repaginate = null;
     }
 
@@ -114,7 +111,7 @@ class repaginate_test extends \advanced_testcase {
 
         // Return the quiz object.
         $quizobj = new quiz($quiz, $cm, $SITE);
-        return structure::create_for_quiz($quizobj);
+        return \mod_quiz\structure::create_for_quiz($quizobj);
     }
 
     /**
@@ -264,7 +261,7 @@ class repaginate_test extends \advanced_testcase {
     public function test_repaginate_the_rest() {
         $this->set_quiz_slots();
         $slotfrom = 1;
-        $type = repaginate::LINK;
+        $type = \mod_quiz\repaginate::LINK;
         $expected = array();
         foreach ($this->quizslots as $slot) {
             if ($slot->slot > $slotfrom) {
@@ -284,7 +281,7 @@ class repaginate_test extends \advanced_testcase {
             $newslots[$s->id] = $s;
         }
 
-        $type = repaginate::UNLINK;
+        $type = \mod_quiz\repaginate::UNLINK;
         $expected = array();
         foreach ($this->quizslots as $slot) {
             if ($slot->slot > ($slotfrom - 1)) {

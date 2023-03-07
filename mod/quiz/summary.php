@@ -30,9 +30,6 @@ $attemptid = required_param('attempt', PARAM_INT); // The attempt to summarise.
 $cmid = optional_param('cmid', null, PARAM_INT);
 
 $PAGE->set_url('/mod/quiz/summary.php', array('attempt' => $attemptid));
-// During quiz attempts, the browser back/forwards buttons should force a reload.
-$PAGE->set_cacheable(false);
-$PAGE->set_secondary_active_tab("modulepage");
 
 $attemptobj = quiz_create_attempt_handling_errors($attemptid, $cmid);
 
@@ -63,7 +60,7 @@ $accessmanager->setup_attempt_page($PAGE);
 $output = $PAGE->get_renderer('mod_quiz');
 $messages = $accessmanager->prevent_access();
 if (!$attemptobj->is_preview_user() && $messages) {
-    throw new \moodle_exception('attempterror', 'quiz', $attemptobj->view_url(),
+    print_error('attempterror', 'quiz', $attemptobj->view_url(),
             $output->access_messages($messages));
 }
 if ($accessmanager->is_preflight_check_required($attemptobj->get_attemptid())) {
@@ -80,8 +77,6 @@ if ($attemptobj->is_finished()) {
     redirect($attemptobj->review_url());
 }
 
-\core\session\manager::keepalive(); // Try to prevent sessions expiring during quiz attempts.
-
 // Arrange for the navigation to be displayed.
 if (empty($attemptobj->get_quiz()->showblocks)) {
     $PAGE->blocks->show_only_fake_blocks();
@@ -94,7 +89,7 @@ $PAGE->blocks->add_fake_block($navbc, reset($regions));
 $PAGE->navbar->add(get_string('summaryofattempt', 'quiz'));
 $PAGE->set_title($attemptobj->summary_page_title());
 $PAGE->set_heading($attemptobj->get_course()->fullname);
-$PAGE->activityheader->disable();
+
 // Display the page.
 echo $output->summary_page($attemptobj, $displayoptions);
 

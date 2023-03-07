@@ -14,16 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace mod_quiz;
-
-use core_question\local\bank\question_edit_contexts;
-use mod_quiz\question\bank\custom_view;
-
-defined('MOODLE_INTERNAL') || die();
-
-global $CFG;
-require_once($CFG->dirroot . '/question/editlib.php');
-
 /**
  * Unit tests for the quiz's own question bank view class.
  *
@@ -32,7 +22,20 @@ require_once($CFG->dirroot . '/question/editlib.php');
  * @copyright  2018 the Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class quiz_question_bank_view_test extends \advanced_testcase {
+
+defined('MOODLE_INTERNAL') || die();
+
+global $CFG;
+require_once($CFG->dirroot . '/question/editlib.php');
+
+
+/**
+ * Unit tests for the quiz's own question bank view class.
+ *
+ * @copyright  2018 the Open University
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class quiz_question_bank_view_testcase extends advanced_testcase {
 
     public function test_viewing_question_bank_should_not_load_individual_questions() {
         $this->resetAfterTest();
@@ -44,7 +47,7 @@ class quiz_question_bank_view_test extends \advanced_testcase {
         // Create a course and a quiz.
         $course = $generator->create_course();
         $quiz = $this->getDataGenerator()->create_module('quiz', array('course' => $course->id));
-        $context = \context_module::instance($quiz->cmid);
+        $context = context_module::instance($quiz->cmid);
         $cm = get_coursemodule_from_instance('quiz', $quiz->id);
 
         // Create a question in the default category.
@@ -54,25 +57,17 @@ class quiz_question_bank_view_test extends \advanced_testcase {
                 ['name' => 'Example question', 'category' => $cat->id]);
 
         // Ensure the question is not in the cache.
-        $cache = \cache::make('core', 'questiondata');
+        $cache = cache::make('core', 'questiondata');
         $cache->delete($questiondata->id);
 
         // Generate the view.
-        $view = new custom_view($contexts, new \moodle_url('/'), $course, $cm, $quiz);
+        $view = new mod_quiz\question\bank\custom_view($contexts, new moodle_url('/'), $course, $cm, $quiz);
         ob_start();
-        $pagevars = [
-            'qpage' => 0,
-            'qperpage' => 20,
-            'cat' => $cat->id . ',' . $context->id,
-            'recurse' => false,
-            'showhidden' => false,
-            'qbshowtext' => false
-        ];
-        $view->display($pagevars, 'editq');
+        $view->display('editq', 0, 20, $cat->id . ',' . $cat->contextid, false, false, false);
         $html = ob_get_clean();
 
         // Verify the output includes the expected question.
-        $this->assertStringContainsString('Example question', $html);
+        $this->assertContains('Example question', $html);
 
         // Verify the question has not been loaded into the cache.
         $this->assertFalse($cache->has($questiondata->id));

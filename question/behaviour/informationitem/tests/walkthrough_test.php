@@ -14,9 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace qbehaviour_informationitem;
-
-use question_state;
+/**
+ * This file contains tests that walks a question through the information item
+ * behaviour.
+ *
+ * @package   qbehaviour_informationitem
+ * @category  test
+ * @copyright 2009 The Open University
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -28,16 +34,14 @@ require_once(__DIR__ . '/../../../engine/tests/helpers.php');
 /**
  * Unit tests for the information item behaviour.
  *
- * @package   qbehaviour_informationitem
- * @category  test
  * @copyright 2009 The Open University
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class walkthrough_test extends \qbehaviour_walkthrough_test_base {
+class qbehaviour_informationitem_walkthrough_testcase extends qbehaviour_walkthrough_test_base {
     public function test_informationitem_feedback_description() {
 
         // Create a true-false question with correct answer true.
-        $description = \test_question_maker::make_question('description');
+        $description = test_question_maker::make_question('description');
         $this->start_attempt_at_question($description, 'deferredfeedback');
 
         // Check the initial state.
@@ -61,7 +65,7 @@ class walkthrough_test extends \qbehaviour_walkthrough_test_base {
         $this->check_current_state(question_state::$complete);
         $this->check_current_mark(null);
         $this->check_current_output($this->get_does_not_contain_correctness_expectation(),
-                new \question_no_pattern_expectation(
+                new question_no_pattern_expectation(
                 '/type=\"hidden\"[^>]*name=\"[^"]*seen\"|name=\"[^"]*seen\"[^>]*type=\"hidden\"/'),
                 $this->get_does_not_contain_feedback_expectation());
 
@@ -81,7 +85,7 @@ class walkthrough_test extends \qbehaviour_walkthrough_test_base {
         $this->check_current_state(question_state::$manfinished);
         $this->check_current_mark(null);
         $this->check_current_output(
-                new \question_pattern_expectation('/' . preg_quote('Not good enough!', '/') . '/'));
+                new question_pattern_expectation('/' . preg_quote('Not good enough!', '/') . '/'));
 
         // Check that trying to process a manual comment with a grade causes an exception.
         $this->expectException('moodle_exception');

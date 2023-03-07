@@ -26,8 +26,6 @@
 
 namespace core_question\statistics\questions;
 
-use question_bank;
-
 /**
  * A collection of all the question statistics calculated for an activity instance.
  *
@@ -44,7 +42,7 @@ class all_calculated_for_qubaid_condition {
     /**
      * @var object[]
      */
-    public $subquestions = [];
+    public $subquestions;
 
     /**
      * Holds slot (position) stats and stats for variants of questions in slots.
@@ -216,13 +214,7 @@ class all_calculated_for_qubaid_condition {
                 } else {
                     $this->subquestionstats[$fromdb->questionid] = new calculated_for_subquestion();
                     $this->subquestionstats[$fromdb->questionid]->populate_from_record($fromdb);
-                    if (isset($this->subquestions[$fromdb->questionid])) {
-                        $this->subquestionstats[$fromdb->questionid]->question =
-                                $this->subquestions[$fromdb->questionid];
-                    } else {
-                        $this->subquestionstats[$fromdb->questionid]->question =
-                                question_bank::get_qtype('missingtype', false)->make_deleted_instance($fromdb->questionid, 1);
-                    }
+                    $this->subquestionstats[$fromdb->questionid]->question = $this->subquestions[$fromdb->questionid];
                 }
             }
         }

@@ -14,23 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+defined('MOODLE_INTERNAL') || die();
+
 /**
- * Quiz module test data generator.
+ * Quiz module test data generator class
  *
- * @package    core_question
+ * @package    moodlecore
+ * @subpackage question
  * @copyright  2013 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
-use core_question\local\bank\question_version_status;
-
-/**
- * Class core_question_generator for generating question data.
- *
- * @package   core_question
- * @copyright 2013 The Open University
- * @author    2021 Safat Shahin <safatshahin@catalyst-au.net>
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class core_question_generator extends component_generator_base {
 
@@ -39,32 +31,28 @@ class core_question_generator extends component_generator_base {
      */
     protected $categorycount = 0;
 
-    /**
-     * Make the category count to zero.
-     */
     public function reset() {
         $this->categorycount = 0;
     }
 
     /**
      * Create a new question category.
-     *
      * @param array|stdClass $record
      * @return stdClass question_categories record.
      */
     public function create_question_category($record = null) {
         global $DB;
 
-        $this->categorycount ++;
+        $this->categorycount++;
 
-        $defaults = [
+        $defaults = array(
             'name'       => 'Test question category ' . $this->categorycount,
             'info'       => '',
             'infoformat' => FORMAT_HTML,
             'stamp'      => make_unique_id_code(),
             'sortorder'  => 999,
             'idnumber'   => null
-        ];
+        );
 
         $record = $this->datagenerator->combine_defaults_and_record($defaults, $record);
 
@@ -91,11 +79,18 @@ class core_question_generator extends component_generator_base {
      * @return stdClass the question data.
      */
     public function create_question($qtype, $which = null, $overrides = null) {
+        global $CFG;
+        require_once($CFG->dirroot . '/question/engine/tests/helpers.php');
+
+        $fromform = test_question_maker::get_question_form_data($qtype, $which);
+        $fromform = (object) $this->datagenerator->combine_defaults_and_record(
+                (array) $fromform, $overrides);
+
         $question = new stdClass();
-        $question->qtype = $qtype;
+        $question->category  = $fromform->category;
+        $question->qtype     = $qtype;
         $question->createdby = 0;
         $question->idnumber = null;
-        $question->status = question_version_status::QUESTION_STATUS_READY;
 
         return $this->update_question($question, $which, $overrides);
     }
@@ -127,21 +122,17 @@ class core_question_generator extends component_generator_base {
         $qtype = $question->qtype;
 
         $fromform = test_question_maker::get_question_form_data($qtype, $which);
-        $fromform = (object) $this->datagenerator->combine_defaults_and_record((array) $question, $fromform);
-        $fromform = (object) $this->datagenerator->combine_defaults_and_record((array) $fromform, $overrides);
-        $fromform->status = $fromform->status ?? $question->status;
+        $fromform = (object) $this->datagenerator->combine_defaults_and_record(
+                (array) $question, $fromform);
+        $fromform = (object) $this->datagenerator->combine_defaults_and_record(
+                (array) $fromform, $overrides);
 
         $question = question_bank::get_qtype($qtype)->save_question($question, $fromform);
 
-        if ($overrides && (array_key_exists('createdby', $overrides) || array_key_exists('modifiedby', $overrides))) {
-            // Manually update the createdby and modifiedby because questiontypebase forces
-            // current user and some tests require a specific user.
-            if (array_key_exists('createdby', $overrides)) {
-                $question->createdby = $overrides['createdby'];
-            }
-            if (array_key_exists('modifiedby', $overrides)) {
-                $question->modifiedby = $overrides['modifiedby'];
-            }
+        if ($overrides && array_key_exists('createdby', $overrides)) {
+            // Manually update the createdby because questiontypebase forces current user and some tests require a
+            // specific user.
+            $question->createdby = $overrides['createdby'];
             $DB->update_record('question', $question);
         }
 
@@ -179,12 +170,12 @@ class core_question_generator extends component_generator_base {
 
         $qcat = $this->create_question_category(['contextid' => $context->id]);
 
-        $questions = [
+        $questions = array(
                 $this->create_question('shortanswer', null, ['category' => $qcat->id]),
                 $this->create_question('shortanswer', null, ['category' => $qcat->id]),
-        ];
+        );
 
-        return [$category, $course, $qcat, $questions];
+        return array($category, $course, $qcat, $questions);
     }
 
     /**

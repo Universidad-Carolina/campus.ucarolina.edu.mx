@@ -14,13 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace tool_mobile;
+/**
+ * Moodle Mobile admin tool api tests.
+ *
+ * @package    tool_mobile
+ * @category   external
+ * @copyright  2016 Juan Leyva
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @since      Moodle 3.1
+ */
 
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
 require_once($CFG->dirroot . '/webservice/tests/helpers.php');
+
+use tool_mobile\api;
 
 /**
  * Moodle Mobile admin tool api tests.
@@ -30,7 +40,7 @@ require_once($CFG->dirroot . '/webservice/tests/helpers.php');
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @since       Moodle 3.1
  */
-class api_test extends \externallib_advanced_testcase {
+class tool_mobile_api_testcase extends externallib_advanced_testcase {
 
     /**
      * Test get_autologin_key.
@@ -59,26 +69,22 @@ class api_test extends \externallib_advanced_testcase {
      */
     public function test_get_potential_config_issues() {
         global $CFG;
+        require_once($CFG->dirroot . '/message/lib.php');
 
         $this->resetAfterTest(true);
         $this->setAdminUser();
 
-        // Set non-SSL wwwroot, to avoid spurious certificate checking.
-        $CFG->wwwroot = 'http://www.example.com';
+        $CFG->userquota = '73289234723498234723423489273423497234234';
         $CFG->debugdisplay = 1;
-
         set_config('debugauthdb', 1, 'auth_db');
         set_config('debugdb', 1, 'enrol_database');
+        $expectedissues = array('nohttpsformobilewarning', 'invaliduserquotawarning', 'adodbdebugwarning', 'displayerrorswarning');
 
-        // Get potential issues, obtain their keys for comparison.
         $issues = api::get_potential_config_issues();
-        $issuekeys = array_column($issues, 0);
-
-        $this->assertEqualsCanonicalizing([
-            'nohttpsformobilewarning',
-            'adodbdebugwarning',
-            'displayerrorswarning',
-        ], $issuekeys);
+        $this->assertCount(count($expectedissues), $issues);
+        foreach ($issues as $issue) {
+            $this->assertTrue(in_array($issue[0], $expectedissues));
+        }
     }
 
     /**
@@ -101,7 +107,7 @@ class api_test extends \externallib_advanced_testcase {
         set_config('allowedemaildomains', 'example.com');
 
         $DB->set_field_select('message_processors', 'enabled', 0, "name <> 'email'");
-        set_user_preference('message_provider_moodle_instantmessage_enabled', 'email', $user2);
+        set_user_preference('message_provider_moodle_instantmessage_loggedoff', 'email', $user2);
 
         // Extra content for all types of messages.
         $message = new \core\message\message();
@@ -126,7 +132,7 @@ class api_test extends \externallib_advanced_testcase {
         $email = reset($emails);
 
         // Check we got the promotion text.
-        $this->assertStringContainsString($mobileappdownloadpage, quoted_printable_decode($email->body));
+        $this->assertContains($mobileappdownloadpage, quoted_printable_decode($email->body));
         $sink->clear();
 
         // Disable mobile so we don't get mobile promotions.
@@ -136,7 +142,7 @@ class api_test extends \externallib_advanced_testcase {
         $this->assertCount(1, $emails);
         $email = reset($emails);
         // Check we don't get the promotion text.
-        $this->assertStringNotContainsString($mobileappdownloadpage, quoted_printable_decode($email->body));
+        $this->assertNotContains($mobileappdownloadpage, quoted_printable_decode($email->body));
         $sink->clear();
 
         // Enable mobile again and set current user mobile token so we don't get mobile promotions.
@@ -152,7 +158,7 @@ class api_test extends \externallib_advanced_testcase {
         $this->assertCount(1, $emails);
         $email = reset($emails);
         // Check we don't get the promotion text.
-        $this->assertStringNotContainsString($mobileappdownloadpage, quoted_printable_decode($email->body));
+        $this->assertNotContains($mobileappdownloadpage, quoted_printable_decode($email->body));
         $sink->clear();
         $sink->close();
     }

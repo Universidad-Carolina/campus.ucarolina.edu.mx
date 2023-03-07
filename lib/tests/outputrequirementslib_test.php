@@ -14,7 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core;
+/**
+ * Unit tests for lib/outputrequirementslibphp.
+ *
+ * @package   core
+ * @category  phpunit
+ * @copyright 2012 Petr Škoda
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -22,19 +29,11 @@ global $CFG;
 require_once($CFG->libdir . '/outputrequirementslib.php');
 
 
-/**
- * Unit tests for lib/outputrequirementslibphp.
- *
- * @package   core
- * @category  test
- * @copyright 2012 Petr Škoda
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-class outputrequirementslib_test extends \advanced_testcase {
+class core_outputrequirementslib_testcase extends advanced_testcase {
     public function test_string_for_js() {
         $this->resetAfterTest();
 
-        $page = new \moodle_page();
+        $page = new moodle_page();
         $page->requires->string_for_js('course', 'moodle', 1);
         $page->requires->string_for_js('course', 'moodle', 1);
         $this->expectException('coding_exception');
@@ -45,21 +44,21 @@ class outputrequirementslib_test extends \advanced_testcase {
     }
 
     public function test_one_time_output_normal_case() {
-        $page = new \moodle_page();
+        $page = new moodle_page();
         $this->assertTrue($page->requires->should_create_one_time_item_now('test_item'));
         $this->assertFalse($page->requires->should_create_one_time_item_now('test_item'));
     }
 
     public function test_one_time_output_repeat_output_throws() {
-        $page = new \moodle_page();
+        $page = new moodle_page();
         $page->requires->set_one_time_item_created('test_item');
         $this->expectException('coding_exception');
         $page->requires->set_one_time_item_created('test_item');
     }
 
     public function test_one_time_output_different_pages_independent() {
-        $firstpage = new \moodle_page();
-        $secondpage = new \moodle_page();
+        $firstpage = new moodle_page();
+        $secondpage = new moodle_page();
         $this->assertTrue($firstpage->requires->should_create_one_time_item_now('test_item'));
         $this->assertTrue($secondpage->requires->should_create_one_time_item_now('test_item'));
     }
@@ -77,7 +76,7 @@ class outputrequirementslib_test extends \advanced_testcase {
         // With slasharguments on.
         $CFG->slasharguments = 1;
 
-        $page = new \moodle_page();
+        $page = new moodle_page();
         $requirements = $page->requires;
         // Assert successful method call.
         $this->assertTrue($requirements->jquery_plugin('jquery'));
@@ -92,7 +91,7 @@ class outputrequirementslib_test extends \advanced_testcase {
         // With slasharguments off.
         $CFG->slasharguments = 0;
 
-        $page = new \moodle_page();
+        $page = new moodle_page();
         $requirements = $page->requires;
         // Assert successful method call.
         $this->assertTrue($requirements->jquery_plugin('jquery'));
@@ -109,7 +108,7 @@ class outputrequirementslib_test extends \advanced_testcase {
      */
     public function test_js_call_amd() {
 
-        $page = new \moodle_page();
+        $page = new moodle_page();
 
         // Load an AMD module without a function call.
         $page->requires->js_call_amd('theme_foobar/lightbox');
@@ -127,12 +126,12 @@ class outputrequirementslib_test extends \advanced_testcase {
         $html = $page->requires->get_end_code();
 
         $modname = 'theme_foobar/lightbox';
-        $this->assertStringContainsString("M.util.js_pending('{$modname}'); require(['{$modname}'], function(amd) {M.util.js_complete('{$modname}');});", $html);
+        $this->assertContains("M.util.js_pending('{$modname}'); require(['{$modname}'], function(amd) {M.util.js_complete('{$modname}');});", $html);
 
         $modname = 'theme_foobar/demo_one';
-        $this->assertStringContainsString("M.util.js_pending('{$modname}'); require(['{$modname}'], function(amd) {amd.init(); M.util.js_complete('{$modname}');});", $html);
+        $this->assertContains("M.util.js_pending('{$modname}'); require(['{$modname}'], function(amd) {amd.init(); M.util.js_complete('{$modname}');});", $html);
 
         $modname = 'theme_foobar/demo_two';
-        $this->assertStringContainsString("M.util.js_pending('{$modname}'); require(['{$modname}'], function(amd) {amd.init(\"foo\", \"baz\", [42,\"xyz\"]); M.util.js_complete('{$modname}');});", $html);
+        $this->assertContains("M.util.js_pending('{$modname}'); require(['{$modname}'], function(amd) {amd.init(\"foo\", \"baz\", [42,\"xyz\"]); M.util.js_complete('{$modname}');});", $html);
     }
 }

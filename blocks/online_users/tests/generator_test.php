@@ -14,7 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace block_online_users;
+/**
+ * PHPUnit data generator tests
+ *
+ * @package    block_online_users
+ * @category   phpunit
+ * @copyright  2012 Petr Skoda {@link http://skodak.org}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
 
 /**
  * PHPUnit data generator testcase
@@ -24,7 +34,7 @@ namespace block_online_users;
  * @copyright  2012 Petr Skoda {@link http://skodak.org}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class generator_test extends \advanced_testcase {
+class block_online_users_generator_testcase extends advanced_testcase {
     public function test_generator() {
         global $DB;
 

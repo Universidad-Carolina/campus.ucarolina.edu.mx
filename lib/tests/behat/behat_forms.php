@@ -28,9 +28,10 @@
 require_once(__DIR__ . '/../../../lib/behat/behat_base.php');
 require_once(__DIR__ . '/../../../lib/behat/behat_field_manager.php');
 
-use Behat\Gherkin\Node\{TableNode, PyStringNode};
-use Behat\Mink\Element\NodeElement;
-use Behat\Mink\Exception\{ElementNotFoundException, ExpectationException};
+use Behat\Gherkin\Node\TableNode as TableNode,
+    Behat\Gherkin\Node\PyStringNode as PyStringNode,
+    Behat\Mink\Exception\ExpectationException as ExpectationException,
+    Behat\Mink\Exception\ElementNotFoundException as ElementNotFoundException;
 
 /**
  * Forms-related steps definitions.
@@ -67,11 +68,9 @@ class behat_forms extends behat_base {
         // Ensures the button is present, before pressing.
         $buttonnode = $this->find_button($button);
         $buttonnode->press();
-        $this->wait_for_pending_js();
-        $this->look_for_exceptions();
 
         // Switch to main window.
-        $this->execute('behat_general::switch_to_the_main_window');
+        $this->getSession()->switchToWindow(behat_general::MAIN_WINDOW_NAME);
     }
 
     /**
@@ -143,22 +142,18 @@ class behat_forms extends behat_base {
         // We already know that we waited for the DOM and the JS to be loaded, even the editor
         // so, we will use the reduced timeout as it is a common task and we should save time.
         try {
-            $this->wait_for_pending_js();
+
             // Expand all fieldsets link - which will only be there if there is more than one collapsible section.
             $expandallxpath = "//div[@class='collapsible-actions']" .
-                "//a[contains(concat(' ', @class, ' '), ' collapsed ')]" .
-                "//span[contains(concat(' ', @class, ' '), ' expandall ')]";
-            // Else, look for the first expand fieldset link (old theme structure).
-            $expandsectionold = "//legend[@class='ftoggler']" .
-                    "//a[contains(concat(' ', @class, ' '), ' icons-collapse-expand ') and @aria-expanded = 'false']";
-            // Else, look for the first expand fieldset link (current theme structure).
-            $expandsectioncurrent = "//fieldset//div[contains(concat(' ', @class, ' '), ' ftoggler ')]" .
-                    "//a[contains(concat(' ', @class, ' '), ' icons-collapse-expand ') and @aria-expanded = 'false']";
+                "//a[contains(concat(' ', @class, ' '), ' collapseexpand ')]" .
+                "[not(contains(concat(' ', @class, ' '), ' collapse-all '))]";
+            // Else, look for the first expand fieldset link.
+            $expandonlysection = "//legend[@class='ftoggler']" .
+                    "//a[contains(concat(' ', @class, ' '), ' fheader ') and @aria-expanded = 'false']";
 
-            $collapseexpandlink = $this->find('xpath', $expandallxpath . '|' . $expandsectionold . '|' . $expandsectioncurrent,
+            $collapseexpandlink = $this->find('xpath', $expandallxpath . '|' . $expandonlysection,
                     false, false, behat_base::get_reduced_timeout());
             $collapseexpandlink->click();
-            $this->wait_for_pending_js();
 
         } catch (ElementNotFoundException $e) {
             // The behat_base::find() method throws an exception if there are no elements,
@@ -291,7 +286,10 @@ class behat_forms extends behat_base {
      * @return void
      */
     public function i_set_the_field_with_xpath_to($fieldxpath, $value) {
-        $this->set_field_node_value($this->find('xpath', $fieldxpath), $value);
+        $fieldnode = $this->find('xpath', $fieldxpath);
+        $this->ensure_node_is_visible($fieldnode);
+        $field = behat_field_manager::get_form_field($fieldnode, $this->getSession());
+        $field->set_value($value);
     }
 
     /**
@@ -316,19 +314,6 @@ class behat_forms extends behat_base {
                 $this->getSession()
             );
         }
-    }
-
-    /**
-     * Checks, the field matches the value.
-     *
-     * @Then /^the field "(?P<field_string>(?:[^"]|\\")*)" matches multiline:$/
-     * @throws ElementNotFoundException Thrown by behat_base::find
-     * @param string $field
-     * @param PyStringNode $value
-     * @return void
-     */
-    public function the_field_matches_multiline($field, PyStringNode $value) {
-        $this->the_field_matches_value($field, (string)$value);
     }
 
     /**
@@ -642,20 +627,10 @@ class behat_forms extends behat_base {
      * @return void
      */
     protected function set_field_value($fieldlocator, $value) {
+
         // We delegate to behat_form_field class, it will
         // guess the type properly as it is a select tag.
         $field = behat_field_manager::get_form_field_from_label($fieldlocator, $this);
-        $field->set_value($value);
-    }
-
-    /**
-     * Generic field setter to be used by chainable steps.
-     *
-     * @param NodeElement $fieldnode
-     * @param string $value
-     */
-    public function set_field_node_value(NodeElement $fieldnode, string $value): void {
-        $field = behat_field_manager::get_form_field($fieldnode, $this->getSession());
         $field->set_value($value);
     }
 
@@ -671,8 +646,12 @@ class behat_forms extends behat_base {
      * @param string $containerelement Element we look in
      */
     protected function set_field_value_in_container($fieldlocator, $value, $containerselectortype, $containerelement) {
+
         $node = $this->get_node_in_container('field', $fieldlocator, $containerselectortype, $containerelement);
-        $this->set_field_node_value($node, $value);
+        // We delegate to behat_form_field class, it will
+        // guess the type properly as it is a select tag.
+        $field = behat_field_manager::get_form_field($node, $this->getSession());
+        $field->set_value($value);
     }
 
     /**
@@ -711,21 +690,18 @@ class behat_forms extends behat_base {
         $xpathtarget = "//ul[@class='form-autocomplete-suggestions']//*[contains(concat('|', string(.), '|'),'|" . $item . "|')]";
 
         $this->execute('behat_general::i_click_on', [$xpathtarget, 'xpath_element']);
+
+        $this->execute('behat_general::i_press_key_in_element', ['13', 'body', 'xpath_element']);
     }
 
     /**
      * Open the auto-complete suggestions list (Assuming there is only one on the page.).
      *
-     * @Given I open the autocomplete suggestions list
-     * @Given I open the autocomplete suggestions list in the :container :containertype
+     * @Given /^I open the autocomplete suggestions list$/
      */
-    public function i_open_the_autocomplete_suggestions_list($container = null, $containertype = null) {
+    public function i_open_the_autocomplete_suggestions_list() {
         $csstarget = ".form-autocomplete-downarrow";
-        if ($container && $containertype) {
-            $this->execute('behat_general::i_click_on_in_the', [$csstarget, 'css_element', $container, $containertype]);
-        } else {
-            $this->execute('behat_general::i_click_on', [$csstarget, 'css_element']);
-        }
+        $this->execute('behat_general::i_click_on', [$csstarget, 'css_element']);
     }
 
     /**
@@ -754,46 +730,5 @@ class behat_forms extends behat_base {
         $xpathtarget = "//div[contains(@class, 'form-autocomplete-selection') and contains(.//div, '" . $option . "')]";
         $node = $this->get_node_in_container('xpath_element', $xpathtarget, 'form_row', $field);
         $this->ensure_node_is_visible($node);
-    }
-
-    /**
-     * Checks whether the select menu contains an option with specified text or not.
-     *
-     * @Then the :name select menu should contain :option
-     * @Then the :name select menu should :not contain :option
-     *
-     * @throws ExpectationException When the expectation is not satisfied
-     * @param string $label The label of the select menu element
-     * @param string $option The string that is used to identify an option within the select menu. If the string
-     *                       has two items separated by '>' (ex. "Group > Option"), the first item ("Group") will be
-     *                       used to identify a particular group within the select menu, while the second ("Option")
-     *                       will be used to identify an option within that group. Otherwise, a string with a single
-     *                       item (ex. "Option") will be used to identify an option within the select menu regardless
-     *                       of any existing groups.
-     * @param string|null $not If set, the select menu should not contain the specified option. If null, the option
-     *                         should be present.
-     */
-    public function the_select_menu_should_contain(string $label, string $option, ?string $not = null) {
-
-        $field = behat_field_manager::get_form_field_from_label($label, $this);
-
-        if (!method_exists($field, 'has_option')) {
-            throw new coding_exception('Field does not support the has_option function.');
-        }
-
-        // If the select menu contains the specified option but it should not.
-        if ($field->has_option($option) && $not) {
-            throw new ExpectationException(
-                "The select menu should not contain \"{$option}\" but it does.",
-                $this->getSession()
-            );
-        }
-        // If the select menu does not contain the specified option but it should.
-        if (!$field->has_option($option) && !$not) {
-            throw new ExpectationException(
-                "The select menu should contain \"{$option}\" but it does not.",
-                $this->getSession()
-            );
-        }
     }
 }

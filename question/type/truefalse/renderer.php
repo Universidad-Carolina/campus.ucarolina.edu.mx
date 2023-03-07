@@ -100,10 +100,8 @@ class qtype_truefalse_renderer extends qtype_renderer {
                 array('class' => 'qtext'));
 
         $result .= html_writer::start_tag('div', array('class' => 'ablock'));
-        if (!empty($question->showstandardinstruction)) {
-            $result .= html_writer::tag('div', get_string('selectone', 'qtype_truefalse'),
+        $result .= html_writer::tag('div', get_string('selectone', 'qtype_truefalse'),
                 array('class' => 'prompt'));
-        }
 
         $result .= html_writer::start_tag('div', array('class' => 'answer'));
         $result .= html_writer::tag('div', $radiotrue . ' ' . $truefeedbackimg,

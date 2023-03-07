@@ -61,13 +61,11 @@ class event_icon_exporter extends exporter {
         $iscourseevent = ($course && !empty($courseid) && $courseid != SITEID && empty($groupid));
         $isgroupevent = ($group && !empty($groupid));
         $isuserevent = ($user && !empty($userid));
-        $iconurl = '';
 
         if ($isactivityevent) {
-            $key = 'monologo';
+            $key = 'icon';
             $component = $coursemodule->get('modname');
 
-            $iconurl = get_fast_modinfo($courseid)->get_cm($coursemodule->get('id'))->get_icon_url()->out(false);
             if (get_string_manager()->string_exists($event->get_type(), $component)) {
                 $alttext = get_string($event->get_type(), $component);
             } else {
@@ -120,7 +118,6 @@ class event_icon_exporter extends exporter {
         $data->key = $key;
         $data->component = $component;
         $data->alttext = $alttext;
-        $data->iconurl = $iconurl;
 
         parent::__construct($data, $related);
     }
@@ -135,7 +132,6 @@ class event_icon_exporter extends exporter {
             'key' => ['type' => PARAM_TEXT],
             'component' => ['type' => PARAM_TEXT],
             'alttext' => ['type' => PARAM_TEXT],
-            'iconurl' => ['type' => PARAM_TEXT],
         ];
     }
 

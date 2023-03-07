@@ -1,5 +1,6 @@
 <?php
-// This file is part of Moodle - https://moodle.org/
+
+// This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -12,7 +13,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
  * Automatically generated strings for Moodle installer
@@ -33,12 +34,12 @@ $string['clianswerno'] = 'n';
 $string['cliansweryes'] = 'd';
 $string['cliincorrectvalueerror'] = 'Eroare, valoare incorectă "{$a->value}" pentru "{$a->option}"';
 $string['cliincorrectvalueretry'] = 'Valoare incorectă, încercaţi din nou';
-$string['clitypevalue'] = 'introdu valoarea';
-$string['clitypevaluedefault'] = 'introdu valoarea, apasă Enter pentru a folosi valoarea implicită ({$a})';
+$string['clitypevalue'] = 'introduceţi valoarea';
+$string['clitypevaluedefault'] = 'introduceţi valoarea, apăsaţi Enter pentru a folosi valoarea implicită ({$a})';
 $string['cliunknowoption'] = 'Opţiuni necunoscute:
  {$a}
-Te rugăm folosește--opţiunea Ajutor.';
-$string['cliyesnoprompt'] = 'tastează d (pentru \'da\') sau \'n\' (pentru \'nu\')';
+Vă rugăm folosiţi --opţiunea Ajutor.';
+$string['cliyesnoprompt'] = 'introduceţi d (pentru \'da\') sau \'n\' (pentru \'nu\')';
 $string['environmentrequireinstall'] = 'trebuie instalat şi activat';
 $string['environmentrequireversion'] = 'versiuna necesară este {$a->needed} în timp ce dumneavoastră rulaţi versiunea {$a->current}';
 $string['upgradekeyset'] = 'Actualizează cheie  (lăsați gol pentru a nu fi setat)';

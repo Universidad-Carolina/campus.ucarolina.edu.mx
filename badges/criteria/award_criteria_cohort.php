@@ -240,23 +240,13 @@ class award_criteria_cohort extends award_criteria {
             return array($join, $where, $params);
         } else {
             // User is a member of ALL of the specified cohorts.
-            $join = ' LEFT JOIN {cohort_members} cm ON cm.userid = u.id';
-            $where = ' AND (';
+            $join = " LEFT JOIN {cohort_members} cm ON cm.userid = u.id";
             $i = 0;
             foreach ($this->params as $param) {
-                if ($i == 0) {
-                    $where .= 'cm.cohortid = :cohortid'.$i;
-                } else {
-                    $where .= ' OR cm.cohortid = :cohortid'.$i;
-                }
-                $params['cohortid'.$i] = $param['cohort'];
                 $i++;
+                $where = ' AND cm.cohortid = :cohortid'.$i;
+                $params['cohortid'.$i] = $param['cohort'];
             }
-            $where .= ')
-                GROUP BY u.id, bi.badgeid
-                HAVING COUNT(cm.cohortid) = :cohortcount';
-            $params['cohortcount'] = $i;
-
             return array($join, $where, $params);
         }
     }

@@ -176,7 +176,7 @@ abstract class testing_module_generator extends component_generator_base {
         $easymergefields = array('section', 'added', 'score', 'indent',
             'visible', 'visibleold', 'groupmode', 'groupingid',
             'completion', 'completiongradeitemnumber', 'completionview', 'completionexpected',
-            'completionpassgrade', 'availability', 'showdescription');
+            'availability', 'showdescription');
         foreach ($easymergefields as $key) {
             if (isset($options[$key])) {
                 $moduleinfo->$key = $options[$key];
@@ -195,7 +195,6 @@ abstract class testing_module_generator extends component_generator_base {
             'completion' => 0,
             'completionview' => 0,
             'completionexpected' => 0,
-            'completionpassgrade' => 0,
             'conditiongradegroup' => array(),
             'conditionfieldgroup' => array(),
             'conditioncompletiongroup' => array()
@@ -268,13 +267,8 @@ abstract class testing_module_generator extends component_generator_base {
             debugging('Did you forget to enable completion tracking for the course before generating module with completion tracking?', DEBUG_DEVELOPER);
         }
 
-        if (!empty($record->lang) && !has_capability('moodle/course:setforcedlanguage', context_course::instance($course->id))) {
-            throw new coding_exception('Attempt to generate an activity when the current user does not have ' .
-                    'permission moodle/course:setforcedlanguage. This does not work.');
-        }
-
         // Add the module to the course.
-        $moduleinfo = add_moduleinfo($record, $course);
+        $moduleinfo = add_moduleinfo($record, $course, $mform = null);
 
         // Prepare object to return with additional field cmid.
         $instance = $DB->get_record($this->get_modulename(), array('id' => $moduleinfo->instance), '*', MUST_EXIST);

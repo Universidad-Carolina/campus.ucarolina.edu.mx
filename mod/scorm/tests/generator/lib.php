@@ -68,13 +68,11 @@ class mod_scorm_generator extends testing_module_generator {
             'lastattemptlock' => $cfgscorm->lastattemptlock,
             'forcecompleted' => $cfgscorm->forcecompleted,
             'masteryoverride' => $cfgscorm->masteryoverride,
-            'auto' => $cfgscorm->auto
+            'auto' => $cfgscorm->auto,
+            'displayactivityname' => $cfgscorm->displayactivityname
         );
         if (empty($record['packagefilepath'])) {
             $record['packagefilepath'] = $CFG->dirroot.'/mod/scorm/tests/packages/singlescobasic.zip';
-        }
-        if (strpos($record['packagefilepath'], $CFG->dirroot) !== 0) {
-            $record['packagefilepath'] = "{$CFG->dirroot}/{$record['packagefilepath']}";
         }
 
         // The 'packagefile' value corresponds to the draft file area ID. If not specified, create from packagefilepath.

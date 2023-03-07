@@ -14,7 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core;
+/**
+ * Provides core_update_api_testcase class.
+ *
+ * @package     core_plugin
+ * @category    test
+ * @copyright   2015 David Mudrak <david@moodle.com>
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -29,12 +36,10 @@ require_once(__DIR__.'/fixtures/testable_update_api.php');
  * testable_api client perfectly matches the actual behaviour of the live
  * services on the given API version.
  *
- * @package   core
- * @category  test
  * @copyright 2015 David Mudrak <david@moodle.com>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class update_api_test extends \advanced_testcase {
+class core_update_api_testcase extends advanced_testcase {
 
     /**
      * Make sure the $CFG->branch is mapped correctly to the format used by the API.

@@ -60,15 +60,6 @@ if (!empty($add)) {
     // will be the closest match we have.
     navigation_node::override_active_url(course_get_url($course, $section));
 
-    // MDL-69431 Validate that $section (url param) does not exceed the maximum for this course / format.
-    // If too high (e.g. section *id* not number) non-sequential sections inserted in course_sections table.
-    // Then on import, backup fills 'gap' with empty sections (see restore_rebuild_course_cache). Avoid this.
-    $courseformat = course_get_format($course);
-    $maxsections = $courseformat->get_max_sections();
-    if ($section > $maxsections) {
-        throw new \moodle_exception('maxsectionslimit', 'moodle', '', $maxsections);
-    }
-
     list($module, $context, $cw, $cm, $data) = prepare_new_moduleinfo_data($course, $add, $section);
     $data->return = 0;
     $data->sr = $sectionreturn;
@@ -127,7 +118,7 @@ if (!empty($add)) {
 
 } else {
     require_login();
-    throw new \moodle_exception('invalidaction');
+    print_error('invalidaction');
 }
 
 $pagepath = 'mod-' . $module->name . '-';
@@ -138,14 +129,12 @@ if (!empty($type)) { //TODO: hopefully will be removed in 2.0
 }
 $PAGE->set_pagetype($pagepath);
 $PAGE->set_pagelayout('admin');
-$PAGE->add_body_class('limitedwidth');
-
 
 $modmoodleform = "$CFG->dirroot/mod/$module->name/mod_form.php";
 if (file_exists($modmoodleform)) {
     require_once($modmoodleform);
 } else {
-    throw new \moodle_exception('noformdesc');
+    print_error('noformdesc');
 }
 
 $mformclassname = 'mod_'.$module->name.'_mod_form';
@@ -154,12 +143,7 @@ $mform->set_data($data);
 
 if ($mform->is_cancelled()) {
     if ($return && !empty($cm->id)) {
-        $urlparams = [
-            'id' => $cm->id, // We always need the activity id.
-            'forceview' => 1, // Stop file downloads in resources.
-        ];
-        $activityurl = new moodle_url("/mod/$module->name/view.php", $urlparams);
-        redirect($activityurl);
+        redirect("$CFG->wwwroot/mod/$module->name/view.php?id=$cm->id");
     } else {
         redirect(course_get_url($course, $cw->section, array('sr' => $sectionreturn)));
     }
@@ -169,7 +153,7 @@ if ($mform->is_cancelled()) {
     } else if (!empty($fromform->add)) {
         $fromform = add_moduleinfo($fromform, $course, $mform);
     } else {
-        throw new \moodle_exception('invaliddata');
+        print_error('invaliddata');
     }
 
     if (isset($fromform->submitbutton)) {
@@ -202,14 +186,13 @@ if ($mform->is_cancelled()) {
     if (isset($navbaraddition)) {
         $PAGE->navbar->add($navbaraddition);
     }
-    $PAGE->activityheader->disable();
 
     echo $OUTPUT->header();
 
     if (get_string_manager()->string_exists('modulename_help', $module->name)) {
-        echo $OUTPUT->heading_with_help($pageheading, 'modulename', $module->name, 'monologo');
+        echo $OUTPUT->heading_with_help($pageheading, 'modulename', $module->name, 'icon');
     } else {
-        echo $OUTPUT->heading_with_help($pageheading, '', $module->name, 'monologo');
+        echo $OUTPUT->heading_with_help($pageheading, '', $module->name, 'icon');
     }
 
     $mform->display();

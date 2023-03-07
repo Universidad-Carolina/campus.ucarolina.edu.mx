@@ -88,7 +88,6 @@ abstract class qtype_multichoice_renderer_base extends qtype_with_combined_feedb
             $inputattributes['name'] = $this->get_input_name($qa, $value);
             $inputattributes['value'] = $this->get_input_value($value);
             $inputattributes['id'] = $this->get_input_id($qa, $value);
-            $inputattributes['aria-labelledby'] = $inputattributes['id'] . '_label';
             $isselected = $question->is_choice_selected($response, $value);
             if ($isselected) {
                 $inputattributes['checked'] = 'checked';
@@ -103,20 +102,15 @@ abstract class qtype_multichoice_renderer_base extends qtype_with_combined_feedb
                     'value' => 0,
                 ));
             }
-
-            $choicenumber = '';
-            if ($question->answernumbering !== 'none') {
-                $choicenumber = html_writer::span(
-                        $this->number_in_style($value, $question->answernumbering), 'answernumber');
-            }
-            $choicetext = $question->format_text($ans->answer, $ans->answerformat, $qa, 'question', 'answer', $ansid);
-            $choice = html_writer::div($choicetext, 'flex-fill ml-1');
-
             $radiobuttons[] = $hidden . html_writer::empty_tag('input', $inputattributes) .
-                    html_writer::div($choicenumber . $choice, 'd-flex w-auto', [
-                        'id' => $inputattributes['id'] . '_label',
-                        'data-region' => 'answer-label',
-                    ]);
+                    html_writer::tag('label',
+                        html_writer::span($this->number_in_style($value, $question->answernumbering), 'answernumber') .
+                        html_writer::tag('div',
+                        $question->format_text(
+                                    $ans->answer, $ans->answerformat,
+                                    $qa, 'question', 'answer', $ansid),
+                        array('class' => 'flex-fill ml-1')),
+                        array('for' => $inputattributes['id'], 'class' => 'd-flex w-100'));
 
             // Param $options->suppresschoicefeedback is a hack specific to the
             // oumultiresponse question type. It would be good to refactor to
@@ -133,11 +127,7 @@ abstract class qtype_multichoice_renderer_base extends qtype_with_combined_feedb
             }
             $class = 'r' . ($value % 2);
             if ($options->correctness && $isselected) {
-                // Feedback images will be rendered using Font awesome.
-                // Font awesome icons are actually characters(text) with special glyphs,
-                // so the icons cannot be aligned correctly even if the parent div wrapper is using align-items: flex-start.
-                // To make the Font awesome icons follow align-items: flex-start, we need to wrap them inside a span tag.
-                $feedbackimg[] = html_writer::span($this->feedback_image($this->is_right($ans)), 'ml-1');
+                $feedbackimg[] = $this->feedback_image($this->is_right($ans));
                 $class .= ' ' . $this->feedback_class($this->is_right($ans));
             } else {
                 $feedbackimg[] = '';
@@ -149,7 +139,7 @@ abstract class qtype_multichoice_renderer_base extends qtype_with_combined_feedb
         $result .= html_writer::tag('div', $question->format_questiontext($qa),
                 array('class' => 'qtext'));
 
-        $result .= html_writer::start_tag('div', array('class' => 'ablock no-overflow visual-scroll-x'));
+        $result .= html_writer::start_tag('div', array('class' => 'ablock'));
         if ($question->showstandardinstruction == 1) {
             $result .= html_writer::tag('div', $this->prompt(), array('class' => 'prompt'));
         }
@@ -161,9 +151,6 @@ abstract class qtype_multichoice_renderer_base extends qtype_with_combined_feedb
         }
         $result .= html_writer::end_tag('div'); // Answer.
 
-        // Load JS module for the question answers.
-        $this->page->requires->js_call_amd('qtype_multichoice/answers', 'init',
-            [$qa->get_outer_question_div_unique_id()]);
         $result .= $this->after_choices($qa, $options);
 
         $result .= html_writer::end_tag('div'); // Ablock.
@@ -306,32 +293,25 @@ class qtype_multichoice_single_renderer extends qtype_multichoice_renderer_base 
             'name' => $qa->get_qt_field_name('answer'),
             'id' => $clearchoiceid,
             'value' => -1,
-            'class' => 'sr-only',
-            'aria-hidden' => 'true'
-        ];
-        $clearchoicewrapperattrs = [
-            'id' => $clearchoicefieldname,
-            'class' => 'qtype_multichoice_clearchoice',
+            'class' => 'sr-only'
         ];
 
+        $cssclass = 'qtype_multichoice_clearchoice';
         // When no choice selected during rendering, then hide the clear choice option.
-        // We are using .sr-only and aria-hidden together so while the element is hidden
-        // from both the monitor and the screen-reader, it is still tabbable.
         $linktabindex = 0;
         if (!$hascheckedchoice && $response == -1) {
-            $clearchoicewrapperattrs['class'] .= ' sr-only';
-            $clearchoicewrapperattrs['aria-hidden'] = 'true';
+            $cssclass .= ' sr-only';
             $clearchoiceradioattrs['checked'] = 'checked';
             $linktabindex = -1;
         }
         // Adds an hidden radio that will be checked to give the impression the choice has been cleared.
         $clearchoiceradio = html_writer::empty_tag('input', $clearchoiceradioattrs);
-        $clearchoice = html_writer::link('#', get_string('clearchoice', 'qtype_multichoice'),
-            ['tabindex' => $linktabindex, 'role' => 'button', 'class' => 'btn btn-link ml-3 mt-n1']);
-        $clearchoiceradio .= html_writer::label($clearchoice, $clearchoiceid);
+        $clearchoiceradio .= html_writer::link('', get_string('clearchoice', 'qtype_multichoice'),
+            ['for' => $clearchoiceid, 'role' => 'button', 'tabindex' => $linktabindex,
+            'class' => 'btn btn-link ml-4 pl-1 mt-2']);
 
         // Now wrap the radio and label inside a div.
-        $result = html_writer::tag('div', $clearchoiceradio, $clearchoicewrapperattrs);
+        $result = html_writer::tag('div', $clearchoiceradio, ['id' => $clearchoicefieldname, 'class' => $cssclass]);
 
         // Load required clearchoice AMD module.
         $this->page->requires->js_call_amd('qtype_multichoice/clearchoice', 'init',

@@ -277,7 +277,7 @@ class content_writer implements \core_privacy\local\request\content_writer {
      * @param   boolean         $valueonly  Whether to fetch only the value, rather than the value + description.
      * @return  array                       The metadata as a series of keys to value + descrition objects.
      */
-    public function get_metadata(array $subcontext, $key, $valueonly = true) {
+    public function get_metadata(array $subcontext = [], $key, $valueonly = true) {
         $keys = $this->get_all_metadata($subcontext);
 
         if (isset($keys[$key])) {
@@ -381,8 +381,8 @@ class content_writer implements \core_privacy\local\request\content_writer {
      * @param   string          $text       The text to be processed
      * @return  string                      The processed string
      */
-    public function rewrite_pluginfile_urls(array $subcontext, $component, $filearea, $itemid, $text): string {
-        return str_replace('@@PLUGINFILE@@/', 'files/', $text ?? '');
+    public function rewrite_pluginfile_urls(array $subcontext, $component, $filearea, $itemid, $text) : string {
+        return str_replace('@@PLUGINFILE@@/', 'files/', $text);
     }
 
     /**

@@ -39,23 +39,6 @@
     * description
     * instancecount
 
-    Example context (json):
-    {
-        "id": 1,
-        "name": "Test Tool",
-        "urls": {
-            "edit": "https://moodle.example.com/mod/lti/registersettings.php",
-            "icon": "https://moodle.example.com/theme/image.php/boost/lti/-1/icon"
-        },
-        "state": {
-            "text": "Accepted",
-            "configured": false,
-            "pending": false,
-            "rejected": false,
-            "accepted": true,
-            "unknown": false
-        }
-    }
 }}
 <div class="tool-card" data-proxy-id="{{id}}">
     <div class="overlay-container">
@@ -86,7 +69,7 @@
                     <a class="delete" href="#" title="{{#str}} delete {{/str}}">{{#pix}} t/delete, core, {{#str}} delete {{/str}}{{/pix}}</a>
                 </div>
             </div>
-            <img class="tool-card-icon" src="{{{urls.icon}}}" alt="{{name}}">
+            <img class="tool-card-icon" src="{{{urls.icon}}}" alt="{{name}}"></img>
             <div class="contenteditable-container">
                 <h4 class="name">{{name}}</h4>
                 <div class="overlay-container">{{> mod_lti/loader }}</div>

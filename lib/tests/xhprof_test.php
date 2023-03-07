@@ -14,17 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core;
+/**
+ * Unit tests for xhprof.
+ *
+ * @package   core
+ * @copyright 2019 Brendan Heywood <brendan@catalyst-au.net>
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later (5)
+ */
+
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * Unit tests for the xhprof class.
  *
- * @package   core
- * @category  test
  * @copyright 2019 Brendan Heywood <brendan@catalyst-au.net>
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class xhprof_test extends \advanced_testcase {
+class core_xhprof_testcase extends advanced_testcase {
 
     /**
      * Data provider for string matches

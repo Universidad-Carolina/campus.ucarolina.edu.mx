@@ -14,17 +14,27 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace core;
+/**
+ * Unit tests for the HTMLPurifier integration
+ *
+ * @package    core
+ * @category   phpunit
+ * @copyright  2012 Petr Skoda {@link http://skodak.org}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
 
 /**
  * HTMLPurifier test case
  *
  * @package    core
- * @category   test
+ * @category   phpunit
  * @copyright  2012 Petr Skoda {@link http://skodak.org}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class htmlpurifier_test extends \basic_testcase {
+class core_htmlpurifier_testcase extends basic_testcase {
 
     /**
      * Verify _blank target is allowed.
